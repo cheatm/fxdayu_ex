@@ -16,22 +16,28 @@ class Order:
                  orderID=EMPTY_INT,
                  code=EMPTY_STR,
                  qty=EMPTY_INT,
+                 cum_qty=EMPTY_INT,
                  price=EMPTY_FLOAT,
                  fee=EMPTY_FLOAT,
                  canceled=EMPTY_INT,
-                 status=EMPTY_STR,
+                 status=EMPTY_INT,
                  time=EMPTY,
                  cnfm_time=EMPTY):
         self.accountID = accountID
         self.orderID = orderID
         self.code = code
         self.qty = qty
+        self.cum_qty = cum_qty
         self.price = price
         self.fee = fee
         self.canceled = canceled
         self.status = status
         self.time = time
         self.cnfm_time = cnfm_time
+
+    @property
+    def unfilled(self):
+        return self.qty - self.cum_qty
 
 
 class Trade:
@@ -44,7 +50,7 @@ class Trade:
                  qty=EMPTY_INT,
                  price=EMPTY_FLOAT,
                  fee=EMPTY_FLOAT,
-                 order_status=EMPTY_STR,
+                 order_status=EMPTY_INT,
                  time=EMPTY
                  ):
         self.accountID = accountID

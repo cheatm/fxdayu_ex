@@ -2,7 +2,6 @@
 from fxdayu_ex.module.storage import Order, Trade, Cash, Position
 from fxdayu_ex.module.request import *
 from fxdayu_ex.module.account import AbstractAccount
-import time
 
 
 class Broker(object):
@@ -49,30 +48,6 @@ class Broker(object):
             "position": account.positions,
             "order": account.orders
         }
-
-
-class OrderIDGenerator(object):
-
-    def __init__(self, timestamp, multiple=100):
-        self.last = 0
-        self.multiple = multiple
-        self.origin = int(timestamp * self.multiple)
-
-    @classmethod
-    def year(cls):
-        from datetime import date
-
-        return cls(time.mktime(date.today().replace(month=1, day=1).timetuple()))
-
-
-    def next(self):
-        num = int(time.time()*self.multiple) - self.origin
-        if num > self.last:
-            self.last = num
-        else:
-            self.last += 1
-
-        return self.last
 
 
 class Account(AbstractAccount):
