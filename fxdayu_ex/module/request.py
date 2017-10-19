@@ -2,7 +2,7 @@
 from fxdayu_ex.module.empty import *
 
 
-class OrderBook:
+class ReqOrder:
 
     def __init__(self,
                  accountID=EMPTY_STR,
@@ -61,4 +61,4 @@ class Snapshot:
         self.accountID = accountID
 
 
-__all__ = ["OrderBook", "CancelOrder", "QryOrder", "QryCash", "QryPosition", "QryTrade", "Snapshot"]
+__all__ = ["ReqOrder", "CancelOrder", "QryOrder", "QryCash", "QryPosition", "QryTrade", "Snapshot"]

@@ -2,12 +2,14 @@
 from fxdayu_ex.module.storage import Order, Trade, Cash, Position
 from fxdayu_ex.module.request import *
 from fxdayu_ex.module.account import AbstractAccount
+from fxdayu_ex.module.enums import OrderStatus
 
 
 class Broker(object):
 
-    def __init__(self, accounts=None):
+    def __init__(self, accounts=None, pool=None):
         self.accounts = accounts if accounts is not None else dict()
+        self.pool = pool
 
     # Need to be re write !!!
     def account(self, accountID):
@@ -15,11 +17,17 @@ class Broker(object):
         return self.accounts[accountID]
 
     def order(self, order):
-        return self.account(order.accountID).send_order(order)
+        order = self.account(order.accountID).send_order(order)
+        if order.status.value == OrderStatus.UNFILLED.value:
+            self.pool.put(order)
+
+        return order
 
     def cancel(self, cancel):
-        if isinstance(cancel, CancelOrder):
-            return self.account(cancel.accountID).cancel_order(cancel.orderID)
+        order = self.account(cancel.accountID).cancel_order(cancel.orderID)
+        if order.status.value == OrderStatus.CANCELED.value:
+            pass
+
 
     def trade(self, trade):
         if isinstance(trade, Trade):
@@ -46,7 +54,7 @@ class Broker(object):
         return {
             "cash": account.cash,
             "position": account.positions,
-            "order": account.orders
+            "order": account.pack
         }
 
 
