@@ -2,7 +2,7 @@
 from fxdayu_ex.module.storage import Order, Trade, Cash, Position
 from fxdayu_ex.module.request import *
 from fxdayu_ex.module.account import AbstractAccount
-from fxdayu_ex.module.enums import OrderStatus
+from fxdayu_ex.module.enums import OrderStatus, BSType
 
 
 class Broker(object):
@@ -60,14 +60,29 @@ class Broker(object):
 
 class Account(AbstractAccount):
 
-    def __init__(self, cash, positions, orders, id):
+    def __init__(self, cash, positions, orders):
         self._cash = cash
         self._positions = positions
         self._orders = orders
-        self._id = id
+
+        self.oh = {
+            BSType.BUY.value: self.buy_order,
+            BSType.SELL.value: self.sell_order
+        }
+
+        self.th = {
+            BSType.BUY.value: self.buy_trade,
+            BSType.SELL.value: self.sell_trade
+        }
 
     def send_order(self, order):
-        return Order()
+        return self.oh[order.bs_type.value](order)
+
+    def buy_order(self, order):
+        pass
+
+    def sell_order(self, order):
+        pass
 
     def cancel_order(self, orderID):
         return Order()
@@ -79,10 +94,16 @@ class Account(AbstractAccount):
         return Position()
 
     def transaction(self, trade):
+        return self.th[trade.bs_type.value](trade)
+
+    def buy_trade(self, trade):
+        pass
+
+    def sell_trade(self, trade):
         pass
 
     def get_trade(self, orderID):
-        return Trade
+        return Trade()
 
     @property
     def cash(self):

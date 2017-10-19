@@ -14,12 +14,29 @@ class Structure:
 
 class Cash(Structure):
 
-    __slots__ = ["available", "freeze"]
+    __slots__ = ["available", "frozen"]
 
     def __init__(self, available=EMPTY_FLOAT, freeze=EMPTY_FLOAT):
         self.available = available
-        self.freeze = freeze
+        self.frozen = freeze
 
+    def freeze(self, num):
+        self.available -= num
+        self.frozen += num
+
+    def unfreeze(self, num):
+        self.available += num
+        self.frozen -= num
+
+    def __add__(self, num):
+        self.available += num
+
+    def __sub__(self, num):
+        if self.frozen > num:
+            self.frozen -= num
+        else:
+            self.available -= (num - self.frozen)
+            self.frozen -= 0
 
 
 class Order(Structure):
