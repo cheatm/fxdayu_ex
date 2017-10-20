@@ -1,5 +1,7 @@
 # encoding:utf-8
 from fxdayu_ex.module.empty import *
+from fxdayu_ex.module.enums import *
+
 
 class Structure:
 
@@ -21,65 +23,111 @@ class Cash(Structure):
         self.frozen = freeze
 
     def freeze(self, num):
-        self.available -= num
-        self.frozen += num
+        if self.available >= num:
+            self.available -= num
+            self.frozen += num
+        else:
+            raise CashFreezeExceed(self.available, num)
 
     def unfreeze(self, num):
-        self.available += num
-        self.frozen -= num
-
-    def __add__(self, num):
-        self.available += num
-
-    def __sub__(self, num):
-        if self.frozen > num:
+        if self.frozen >= num:
+            self.available += num
             self.frozen -= num
         else:
-            self.available -= (num - self.frozen)
-            self.frozen -= 0
+            raise CashUnfreezeExceed(self.frozen, num)
+
+    def add(self, num):
+        self.available += num
+
+    def sub(self, num):
+        if self.frozen >= num:
+            self.frozen -= num
+        else:
+            sub = num - self.frozen
+            if self.available >= sub:
+                self.available -= sub
+                self.frozen = 0
+            else:
+                raise CashSubExceed(self.available, self.frozen, sub)
+
+
+class CashFreezeExceed(Exception):
+
+    def __init__(self, available, freeze):
+        self.available = available
+        self.freeze = freeze
+
+    def __str__(self):
+        return "CashFreezeExceed(available={}, freeze={})".format(self.available, self.freeze)
+
+
+class CashUnfreezeExceed(Exception):
+
+    def __init__(self, frozen, unfreeze):
+        self.frozen = frozen
+        self.unfreeze = unfreeze
+
+    def __str__(self):
+        return "CashFreezeExceed(freeze={}, unfreeze={})".format(self.frozen, self.unfreeze)
+
+
+class CashSubExceed(Exception):
+
+    def __init__(self, available, frozen, sub):
+        self.available = available
+        self.frozen = frozen
+        self.sub = sub
 
 
 class Order(Structure):
 
-    __slots__ = ["accountID", "orderID", "code", "qty", "cum_qty", "price", "order_type", "bs_type", "fee",
-                 "canceled", "status", "time", "cnfm_time"]
+    __slots__ = ["accountID", "orderID", "code", "qty", "cumQty", "price", "orderType", "bsType", "status", "frzAmt",
+                 "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime"]
 
     def __init__(self,
                  accountID=EMPTY_STR,
                  orderID=EMPTY_INT,
                  code=EMPTY_STR,
                  qty=EMPTY_INT,
-                 cum_qty=EMPTY_INT,
+                 cumQty=EMPTY_INT,
                  price=EMPTY_FLOAT,
-                 order_type=EMPTY_INT,
-                 bs_type=EMPTY_INT,
-                 fee=EMPTY_FLOAT,
+                 orderType=OrderType.LIMIT,
+                 bsType=BSType.BUY,
+                 status=OrderStatus.UNFILLED,
+                 frzAmt=EMPTY_FLOAT,
+                 frzFee=EMPTY_FLOAT,
+                 cumAmt=EMPTY_FLOAT,
+                 cumFee=EMPTY_FLOAT,
                  canceled=EMPTY_INT,
-                 status=EMPTY_INT,
+                 reason=CanceledReason.CLIENT,
                  time=EMPTY,
-                 cnfm_time=EMPTY):
+                 cnfmTime=EMPTY):
         self.accountID = accountID
         self.orderID = orderID
         self.code = code
         self.qty = qty
-        self.cum_qty = cum_qty
+        self.cumQty = cumQty
         self.price = price
-        self.order_type = order_type
-        self.bs_type = bs_type
-        self.fee = fee
+        self.orderType = orderType
+        self.bsType = bsType
+        self.frzAmt = frzAmt
+        self.frzFee = frzFee
+        self.cumAmt = cumAmt
+        self.cumFee = cumFee
         self.canceled = canceled
+        self.reason = reason
         self.status = status
         self.time = time
-        self.cnfm_time = cnfm_time
+        self.cnfmTime = cnfmTime
 
     @property
     def unfilled(self):
-        return self.qty - self.cum_qty - self.canceled
+        return self.qty - self.cumQty - self.canceled
 
 
 class Trade(Structure):
-    __slots__ = ["accountID", "orderID", "tradeID", "code", "qty", "price", "order_type", "bs_type", "fee",
-                 "order_status", "time"]
+    __slots__ = ["accountID", "orderID", "tradeID", "code", "qty", "price", "orderType", "bsType", "fee",
+                 "orderStatus", "time"]
 
     def __init__(self,
                  accountID=EMPTY_STR,
@@ -88,10 +136,10 @@ class Trade(Structure):
                  code=EMPTY_STR,
                  qty=EMPTY_INT,
                  price=EMPTY_FLOAT,
-                 order_type=EMPTY_INT,
-                 bs_type=EMPTY_INT,
+                 orderType=OrderType.LIMIT,
+                 bsType=BSType.BUY,
                  fee=EMPTY_FLOAT,
-                 order_status=EMPTY_INT,
+                 orderStatus=OrderStatus.UNFILLED,
                  time=EMPTY
                  ):
         self.accountID = accountID
@@ -100,10 +148,10 @@ class Trade(Structure):
         self.code = code
         self.qty = qty
         self.price = price
-        self.order_type = order_type
-        self.bs_type = bs_type
+        self.orderType = orderType
+        self.bsType = bsType
         self.fee = fee
-        self.order_status = order_status
+        self.orderStatus = orderStatus
         self.time = time
 
     def __eq__(self, other):
@@ -112,23 +160,62 @@ class Trade(Structure):
 
 class Position(Structure):
 
-    __slots__ = ["accountID", "code", "origin", "available", "today", "today_sell"]
+    __slots__ = ["accountID", "code", "origin", "available", "frozen", "today", "todaySell"]
 
     def __init__(self,
                  accountID=EMPTY_STR,
                  code=EMPTY_STR,
                  origin=EMPTY_INT,
                  available=EMPTY_INT,
+                 frozen=EMPTY_INT,
                  today=EMPTY_INT,
-                 today_sell=EMPTY_INT,
+                 todaySell=EMPTY_INT,
                  ):
         self.accountID = accountID
         self.code = code
         self.origin = origin
         self.available = available
+        self.frozen = frozen
         self.today = today
-        self.today_sell = today_sell
+        self.todaySell = todaySell
+
+    def freeze(self, qty):
+        if self.available >= qty:
+            self.available -= qty
+            self.frozen += qty
+        else:
+            raise PositionFreezeExceed(self.available, qty)
+
+    def unfreeze(self, qty):
+        if self.frozen >= qty:
+            self.available += qty
+            self.frozen -= qty
+        else:
+            raise PositionFreezeExceed(self.frozen, qty)
+
+    def add(self, qty):
+        self.today += qty
+
+    def sub(self, qty):
+        if self.frozen >= qty:
+            self.frozen -= qty
+            self.todaySell += qty
+        else:
+            raise PositionSubExceed(self.frozen, qty)
 
 
-if __name__ == '__main__':
-    print(Position())
+class PositionFreezeExceed(Exception):
+
+    def __init__(self, available, qty):
+        self.available = available
+        self.qty = qty
+
+
+class PositionUnfreezeExceed(Exception):
+
+    def __init__(self, frozen, qty):
+        self.frozen = frozen
+        self.qty = qty
+
+
+class PositionSubExceed(PositionUnfreezeExceed): pass

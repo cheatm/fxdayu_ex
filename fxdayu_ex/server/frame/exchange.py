@@ -185,7 +185,7 @@ def transact(order, trade):
 def t():
 
     od = Order(orderID=0, code='300667.XSHE', qty=4000, price=46.42,
-               order_type=OrderType.LIMIT, bs_type=BSType.BUY)
+               orderType=OrderType.LIMIT, bsType=BSType.BUY)
     # od = Order(orderID=0, code='300667.XSHE', qty=4000, price=46.39,
     #            order_type=OrderType.LIMIT, bs_type=BSType.SELL)
     op = OrderPack('300667.XSHE')
