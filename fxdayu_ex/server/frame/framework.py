@@ -1,12 +1,16 @@
 from fxdayu_ex.server.frame.broker import Broker
 from fxdayu_ex.server.frame.exchange import Exchange, OrderPool
+from fxdayu_ex.server.frame.exceptions import *
+from fxdayu_ex.server.frame.engine import Engine, TickEvent, ReqEvent, RespEvent
 from fxdayu_ex.module.enums import OrderStatus
 from fxdayu_ex.module.storage import Order, Trade, Cash, Position
 
 
-class Operator(object):
+
+class FrameWork(Engine):
 
     def __init__(self, exchange, broker, orderpool):
+        super(FrameWork, self).__init__()
         self.exchange = exchange
         self.broker = broker
         self.orderpool = orderpool
@@ -16,8 +20,8 @@ class Operator(object):
             self.broker.trade(trade)
             yield trade
 
-    def on_order(self, req):
-        order = self.broker.order(req)
+    def on_order(self, order):
+        order = self.broker.order(order)
         if order.status.value == OrderStatus.UNFILLED.value:
             self.orderpool.put(order)
         return order

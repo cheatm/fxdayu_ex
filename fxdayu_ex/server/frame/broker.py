@@ -1,6 +1,6 @@
 # encoding:utf-8
 from fxdayu_ex.module.enums import OrderStatus, BSType, CanceledReason, OrderType
-from fxdayu_ex.module.storage import Order, Trade, Cash, Position
+from fxdayu_ex.module.storage import Order, Trade, Cash, Position, CashUnfreezeExceed, CashSubExceed, PositionSubExceed
 from fxdayu_ex.module.request import *
 from fxdayu_ex.module.account import AbstractAccount
 
@@ -27,7 +27,6 @@ class Broker(object):
         order = self.account(cancel.accountID).cancel_order(cancel.orderID)
         if order.status.value == OrderStatus.CANCELED.value:
             pass
-
 
     def trade(self, trade):
         if isinstance(trade, Trade):
@@ -87,6 +86,7 @@ class Account(AbstractAccount):
     def sell_order(self, order):
         position = self.get_position(order.code)
         position.freeze(order.qty)
+        self._orders[order.orderID] = order
         order.status = OrderStatus.UNFILLED
         return order
 
@@ -120,38 +120,65 @@ class Account(AbstractAccount):
         return self.th[trade.bsType.value](trade)
 
     def buy_trade(self, trade):
-        # order = self.get_order(trade.orderID)
-        # fee = trade.fee
-        # amt = trade.qty * trade.price
-        # self._cash.sub(fee + amt)
-        # cumQty = order.cumQty + trade.qty
-        # cumFee = order.cumFee + fee
-        # cumAmt = order.cumAmt + amt
-        #
-        # if order.unfilled == 0:
-        #     self._cash.unfreeze(order.frzFee+order.frzAmt-cumAmt-cumFee)
-        #     order.cumFee = cumFee
-        #     self.order_accomplish(order, trade)
-        #
-        # if trade.code in self._positions:
-        #     position = self._positions[trade.code]
-        #     position.add(trade.qty)
-        # else:
-        #     position = Position(self.accountID, trade.code, today=trade.qty)
-        #     self._positions[trade.code] = position
+        order = self.get_order(trade.orderID)
+        self._atomic_buy(order, trade)
+        try:
+            position = self._positions[trade.code]
+        except KeyError:
+            position = Position(self.accountID, trade.code)
+            self._positions[trade.code] = position
+
+        position.add(trade.qty)
 
         return trade
+
+    def _atomic_buy(self, order, trade):
+        cumQty = order.cumQty + trade.qty
+        cumFee = order.cumFee + trade.fee
+        cumAmt = order.cumAmt + trade.qty * trade.price
+        if (cumQty + order.canceled > order.qty) or (cumFee > order.frzFee) or (cumAmt > order.frzAmt):
+            raise OrderTransactExceed(order, trade)
+
+        frozen = self._cash.frozen - trade.qty * trade.price - trade.fee
+        if frozen < 0:
+            raise CashSubExceed(self.cash.available, self.cash.frozen, trade.qty * trade.price + trade.fee)
+
+        if cumQty + order.canceled == order.qty:
+            extra = order.frzAmt + order.frzFee - cumFee - cumAmt
+            frozen -= extra
+            if frozen < 0:
+                raise CashUnfreezeExceed(frozen + extra, extra)
+            else:
+                self.order_accomplish(order, trade)
+                self._cash.available += extra
+
+        order.cumFee = cumFee
+        order.cumAmt = cumAmt
+        order.cumQty = cumQty
+        self._cash.frozen = frozen
 
     def sell_trade(self, trade):
         order = self.get_order(trade.orderID)
         position = self.get_position(trade.code)
-        position.sub(trade.qty)
-        self._cash.add(trade.qty*trade.price-trade.fee)
-        order.cumQty += trade.qty
-        order.cumFee += trade.fee
-        if order.unfilled == 0:
-            self.order_accomplish(order, trade)
+        self._atomic_sell(order, trade, position)
         return trade
+
+    def _atomic_sell(self, order, trade, position):
+        cumAmt = order.cumAmt + trade.qty*trade.price
+        cumFee = order.cumFee + trade.fee
+        cumQty = order.cumQty + trade.qty
+        if cumQty + order.canceled > order.qty:
+            raise OrderTransactExceed(order, trade)
+
+        position.sub(trade.qty)
+
+        if cumQty + order.canceled == order.qty:
+            self.order_accomplish(order, trade)
+
+        order.cumFee = cumFee
+        order.cumAmt = cumAmt
+        order.cumQty = cumQty
+        self._cash.add(trade.qty*trade.price-trade.fee)
 
     def order_accomplish(self, order, trade):
         order.status = OrderStatus.FILLED
@@ -195,6 +222,13 @@ class TradeNotFound(Exception):
         self.tradeID = tradeID
 
 
+class TransactExceed(Exception):
+
+    def __init__(self, order, trade):
+        self.order = order
+        self.trade = trade
+
+
 class PositionNotFound(Exception):
 
     def __init__(self, accountID, code):
@@ -202,17 +236,28 @@ class PositionNotFound(Exception):
         self.code = code
 
 
+class OrderTransactExceed(Exception):
+
+    def __init__(self, order, trade):
+        self.order = order
+        self.trade = trade
+
+
 def acc_t():
     id = 0
-    order = Order(id, 111, "000001.XSHE", 1000, 0, 12.5, OrderType.LIMIT, BSType.BUY)
-    account = Account(id, Cash(100000000), {}, {})
-    account.send_order(order)
-    print(account.get_order(111))
-    print(account.cash)
-    trade = Trade(id, 111, 222, "000001.XSHE", 500, 12.5, OrderType.LIMIT, BSType.BUY, 5, OrderStatus.UNFILLED)
-    account.transaction(trade)
-    print(account.cash)
-    print(account.get_position("000001.XSHE"))
+    code = "000001.XSHE"
+    order = Order(id, 111, "000001.XSHE", 1000, 0, 12.5, OrderType.LIMIT, BSType.SELL, frzAmt=1000*12.5, frzFee=20)
+    account = Account(id, Cash(10000), {}, {})
+    try:
+        account.send_order(order)
+    except Exception as e:
+        print(e)
+
+    print(account.orders)
+    # trade = Trade(id, 111, 222, "000001.XSHE", 600, 12.5, OrderType.LIMIT, BSType.BUY, 5, OrderStatus.UNFILLED)
+    # account.transaction(trade)
+    # account.transaction(trade)
+
 
 
 if __name__ == '__main__':

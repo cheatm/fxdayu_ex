@@ -203,6 +203,11 @@ class Position(Structure):
         else:
             raise PositionSubExceed(self.frozen, qty)
 
+    def day_off(self):
+        self.available += self.frozen + self.today
+        self.frozen = 0
+        self.today = 0
+        self.origin = self.available
 
 class PositionFreezeExceed(Exception):
 
