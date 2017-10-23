@@ -63,18 +63,8 @@ class Account(AbstractAccount):
         self._positions = positions
         self._orders = orders
 
-        self.oh = {
-            BSType.BUY.value: self.buy_order,
-            BSType.SELL.value: self.sell_order
-        }
-
-        self.th = {
-            BSType.BUY.value: self.buy_trade,
-            BSType.SELL.value: self.sell_trade
-        }
-
     def send_order(self, order):
-        return self.oh[order.bsType.value](order)
+        pass
 
     def buy_order(self, order):
         frz = order.frzAmt + order.frzFee
@@ -98,11 +88,24 @@ class Account(AbstractAccount):
         return order
 
     def cancel_order(self, orderID):
-        order = self._orders.pop(orderID, None)
+        order = self._orders.get(orderID, None)
         if order is not None:
             return self._cancel(order, CanceledReason.CLIENT, order.unfilled)
         else:
             return None
+
+    def cancel_buy(self, orderID):
+        order = self.get_order(orderID)
+        self._cash.unfreeze(order.frzFee+order.frzAmt-order.cumAmt-order.cumFee)
+        self._cancel(order, CanceledReason.CLIENT, order.unfilled)
+        return self._orders.pop(order.orderID)
+
+    def cancel_sell(self, orderID):
+        order = self.get_order(orderID)
+        position = self.get_position(order.code)
+        position.unfreeze(order.unfilled)
+        self._cancel(order, CanceledReason.CLIENT, order.unfilled)
+        return self._orders.pop(order.orderID)
 
     def get_order(self, orderID):
         if orderID in self._orders:
@@ -116,9 +119,6 @@ class Account(AbstractAccount):
         else:
             raise PositionNotFound(self.accountID, code)
 
-    def transaction(self, trade):
-        return self.th[trade.bsType.value](trade)
-
     def buy_trade(self, trade):
         order = self.get_order(trade.orderID)
         self._atomic_buy(order, trade)
@@ -130,7 +130,7 @@ class Account(AbstractAccount):
 
         position.add(trade.qty)
 
-        return trade
+        return trade, order, self._cash, position
 
     def _atomic_buy(self, order, trade):
         cumQty = order.cumQty + trade.qty
@@ -161,7 +161,7 @@ class Account(AbstractAccount):
         order = self.get_order(trade.orderID)
         position = self.get_position(trade.code)
         self._atomic_sell(order, trade, position)
-        return trade
+        return trade, order, self._cash, position
 
     def _atomic_sell(self, order, trade, position):
         cumAmt = order.cumAmt + trade.qty*trade.price

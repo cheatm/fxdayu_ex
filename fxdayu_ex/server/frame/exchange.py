@@ -21,12 +21,11 @@ class Exchange(object):
         self.pool = pool
         self.transactor = transactor
         self.snapshots = {}
+        self.limits = {BSType.BUY.value: 1.1, BSType.SELL.value:0.9}
 
-    def highest(self, code):
-        return self.snapshots[code][PRE] * 1.1
-
-    def lowest(self, code):
-        return self.snapshots[code][PRE] * 0.9
+    def price_limit(self, code, bstype):
+        snapshot = self.snapshots[code]
+        return snapshot[PRE] * self.limits[bstype.value]
 
     def on_tick(self, tick):
         code = tick[CODE]

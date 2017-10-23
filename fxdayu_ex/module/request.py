@@ -7,17 +7,17 @@ class ReqOrder:
     def __init__(self,
                  accountID=EMPTY_STR,
                  code=EMPTY_STR,
-                 quantity=EMPTY_INT,
+                 qty=EMPTY_INT,
                  price=EMPTY_FLOAT,
-                 order_type=EMPTY_STR,
-                 bs_type=EMPTY_STR,
+                 orderType=EMPTY,
+                 bsType=EMPTY,
                  info=EMPTY_STR):
         self.accountID = accountID
         self.code = code
-        self.quantity = quantity
+        self.qty = qty
         self.price = price
-        self.order_type = order_type
-        self.bs_type = bs_type
+        self.orderType = orderType
+        self.bsType = bsType
         self.info = info
 
 

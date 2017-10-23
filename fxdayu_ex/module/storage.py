@@ -99,7 +99,7 @@ class Order(Structure):
                  cumAmt=EMPTY_FLOAT,
                  cumFee=EMPTY_FLOAT,
                  canceled=EMPTY_INT,
-                 reason=CanceledReason.CLIENT,
+                 reason=CanceledReason.NONE,
                  time=EMPTY,
                  cnfmTime=EMPTY):
         self.accountID = accountID

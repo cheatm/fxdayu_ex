@@ -17,7 +17,7 @@ class Engine(Thread):
     def __getitem__(self, item):
         return self.handlers[item]
 
-    def pop(self, key):
+    def pop_handler(self, key):
         return self.handlers.pop(key, None)
 
     def start(self):
@@ -40,6 +40,9 @@ class Engine(Thread):
                 self.handlers[event.type](event)
             except Exception as e:
                 self.handle_exception(e)
+
+    def put(self, event):
+        self.queue.put(event)
 
     def handle_exception(self, e):
         pass
@@ -65,7 +68,7 @@ class ReqEvent(Event):
 
     type = 2
 
-    def __int__(self, req):
+    def __init__(self, req):
         self.req = req
 
 
