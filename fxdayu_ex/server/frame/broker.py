@@ -141,13 +141,13 @@ class Account(AbstractAccount):
 
         frozen = self._cash.frozen - trade.qty * trade.price - trade.fee
         if frozen < 0:
-            raise CashSubExceed(self.cash.available, self.cash.frozen, trade.qty * trade.price + trade.fee)
+            raise CashSubExceed(self.accountID, self.cash.available, self.cash.frozen, trade.qty * trade.price + trade.fee)
 
         if cumQty + order.canceled == order.qty:
             extra = order.frzAmt + order.frzFee - cumFee - cumAmt
             frozen -= extra
             if frozen < 0:
-                raise CashUnfreezeExceed(frozen + extra, extra)
+                raise CashUnfreezeExceed(self.accountID, frozen + extra, extra)
             else:
                 self.order_accomplish(order, trade)
                 self._cash.available += extra

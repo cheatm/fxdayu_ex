@@ -181,15 +181,39 @@ class FrameWork(Engine):
 
     """------------------------------------------Exception Handlers------------------------------------------"""
 
+    def exception_output(self, process, name, end="", **kwargs):
+        print("During", process, self.simple_output(name, **kwargs), end)
+
+    @staticmethod
+    def simple_output(name, **kwargs):
+        return "%s(%s)" % (name, ', '.join(["%s=%s" % (key, value) for key, value in kwargs.items()]))
+
     def account_not_found(self, e, process=""):
-        print("During", process, "Account(%s) not found" % e.accountID)
+        self.exception_output(process, "Account", "not found", accountID=e.accountID)
 
     def order_not_found(self, e, process=""):
-        print("During", process, "Order(accountID=%s, orderID=%s) not found" % (e.accountID, e.orderID))
+        self.exception_output(process, "Order", accountID=e.accountID, orderID=e.orderID)
 
     def position_not_found(self, e, process=""):
-        print("During", process, "Position(accountID=%s, code=%s) not found" % (e.accountID, e.code))
+        self.exception_output(process, "Position", accountID=e.accountID, code=e.code)
 
     def position_unfreeze_exceed(self, e, process=""):
-        PositionUnfreezeExceed.
-        print("During", process, ""
+        self.exception_output(process, "Position", e.qty, accountID=e.accountID, code=e.code, frozen=e.frozen)
+
+    def position_freeze_exceed(self, e, process=""):
+        self.exception_output(process, "Position", e.qty, accountID=e.accountID, code=e.code, available=e.available)
+
+    def cash_freeze_exceed(self, e, process=""):
+        self.exception_output(process, "Cash", e.freeze, accountID=e.accountID, available=e.available)
+
+    def cash_unfreeze_exceed(self, e, process=""):
+        self.exception_output(process, "Cash", e.unfreeze, accountID=e.accountID, frozen=e.frozen)
+
+    def cash_sub_exceed(self, e, process=""):
+        self.exception_output(process, "Cash", e.sub, accountID=e.accountID, frozen=e.frozen)
+
+    def order_transact_exceed(self, e, process=""):
+        order = e.order
+        trade = e.trade
+        print("During", process, str(trade), "->", str(order), "exceed")
+        

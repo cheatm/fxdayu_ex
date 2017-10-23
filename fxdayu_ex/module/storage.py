@@ -16,9 +16,10 @@ class Structure:
 
 class Cash(Structure):
 
-    __slots__ = ["available", "frozen"]
+    __slots__ = ["accountID", "available", "frozen"]
 
-    def __init__(self, available=EMPTY_FLOAT, freeze=EMPTY_FLOAT):
+    def __init__(self, accountID=EMPTY_INT, available=EMPTY_FLOAT, freeze=EMPTY_FLOAT):
+        self.accountID = accountID
         self.available = available
         self.frozen = freeze
 
@@ -27,14 +28,14 @@ class Cash(Structure):
             self.available -= num
             self.frozen += num
         else:
-            raise CashFreezeExceed(self.available, num)
+            raise CashFreezeExceed(self.accountID, self.available, num)
 
     def unfreeze(self, num):
         if self.frozen >= num:
             self.available += num
             self.frozen -= num
         else:
-            raise CashUnfreezeExceed(self.frozen, num)
+            raise CashUnfreezeExceed(self.accountID, self.frozen, num)
 
     def add(self, num):
         self.available += num
@@ -43,37 +44,29 @@ class Cash(Structure):
         if self.frozen >= num:
             self.frozen -= num
         else:
-            sub = num - self.frozen
-            if self.available >= sub:
-                self.available -= sub
-                self.frozen = 0
-            else:
-                raise CashSubExceed(self.available, self.frozen, sub)
+            raise CashSubExceed(self.accountID, self.available, self.frozen, num)
 
 
 class CashFreezeExceed(Exception):
 
-    def __init__(self, available, freeze):
+    def __init__(self, accountID, available, freeze):
+        self.accountID = accountID
         self.available = available
         self.freeze = freeze
-
-    def __str__(self):
-        return "CashFreezeExceed(available={}, freeze={})".format(self.available, self.freeze)
 
 
 class CashUnfreezeExceed(Exception):
 
-    def __init__(self, frozen, unfreeze):
+    def __init__(self, accountID, frozen, unfreeze):
+        self.accountID = accountID
         self.frozen = frozen
         self.unfreeze = unfreeze
-
-    def __str__(self):
-        return "CashFreezeExceed(freeze={}, unfreeze={})".format(self.frozen, self.unfreeze)
 
 
 class CashSubExceed(Exception):
 
-    def __init__(self, available, frozen, sub):
+    def __init__(self, accountID, available, frozen, sub):
+        self.accountID = accountID
         self.available = available
         self.frozen = frozen
         self.sub = sub
@@ -184,14 +177,14 @@ class Position(Structure):
             self.available -= qty
             self.frozen += qty
         else:
-            raise PositionFreezeExceed(self.available, qty)
+            raise PositionFreezeExceed(self.accountID, self.code, self.available, qty)
 
     def unfreeze(self, qty):
         if self.frozen >= qty:
             self.available += qty
             self.frozen -= qty
         else:
-            raise PositionFreezeExceed(self.frozen, qty)
+            raise PositionFreezeExceed(self.accountID, self.code, self.frozen, qty)
 
     def add(self, qty):
         self.today += qty
@@ -201,7 +194,7 @@ class Position(Structure):
             self.frozen -= qty
             self.todaySell += qty
         else:
-            raise PositionSubExceed(self.frozen, qty)
+            raise PositionSubExceed(self.accountID, self.code, self.frozen, qty)
 
     def day_off(self):
         self.available += self.frozen + self.today
@@ -211,14 +204,18 @@ class Position(Structure):
 
 class PositionFreezeExceed(Exception):
 
-    def __init__(self, available, qty):
+    def __init__(self, accountID, code, available, qty):
+        self.accountID = accountID
+        self.code = code
         self.available = available
         self.qty = qty
 
 
 class PositionUnfreezeExceed(Exception):
 
-    def __init__(self, frozen, qty):
+    def __init__(self, accountID, code, frozen, qty):
+        self.accountID = accountID
+        self.code = code
         self.frozen = frozen
         self.qty = qty
 
