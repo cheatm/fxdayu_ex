@@ -32,7 +32,7 @@ class Exchange(object):
         self.snapshots[code] = tick
         pack = self.pool.pack(code)
         for order in pack:
-            yield from self.transactor[order.bs_type](order, tick)
+            yield from self.transactor[order.bsType](order, tick)
             pack.wait(order)
         pack.recycle()
 
@@ -75,16 +75,6 @@ class OrderPack(object):
         while self._orders.__len__():
             yield self._orders.popleft()
 
-    # def on_tick(self, tick):
-    #     while self._orders.__len__():
-    #         order = self._orders.popleft()
-    #         yield from transactor[order.bs_type](order, tick)
-    #         if order.unfilled > 0:
-    #             self._wait.append(order)
-    #     while self._wait.__len__():
-    #         order = self._wait.pop()
-    #         self._orders.appendleft(order)
-
     def recycle(self):
         while self._wait.__len__():
             order = self._wait.pop()
@@ -125,13 +115,13 @@ class Transactor(object):
                 if order.unfilled <= volume:
                     yield Trade(
                         order.accountID, order.orderID, self.ids.next(), order.code, order.unfilled, price,
-                        order.order_type, order.bs_type,
+                        order.orderType, order.bsType,
                         order.unfilled*price*self.br, OrderStatus.FILLED.value, combine(tick[DATE], tick[TIME])
                     )
                 else:
                     yield Trade(
                         order.accountID, order.orderID, self.ids.next(), order.code, volume, price,
-                        order.order_type, order.bs_type,
+                        order.orderType, order.bsType,
                         volume*price*self.br, OrderStatus.FILLED.value, combine(tick[DATE], tick[TIME])
                     )
             else:

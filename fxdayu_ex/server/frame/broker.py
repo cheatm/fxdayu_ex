@@ -130,7 +130,7 @@ class Account(AbstractAccount):
 
         position.add(trade.qty)
 
-        return trade, order, self._cash, position
+        return trade
 
     def _atomic_buy(self, order, trade):
         cumQty = order.cumQty + trade.qty
@@ -161,7 +161,7 @@ class Account(AbstractAccount):
         order = self.get_order(trade.orderID)
         position = self.get_position(trade.code)
         self._atomic_sell(order, trade, position)
-        return trade, order, self._cash, position
+        return trade
 
     def _atomic_sell(self, order, trade, position):
         cumAmt = order.cumAmt + trade.qty*trade.price
@@ -183,7 +183,6 @@ class Account(AbstractAccount):
     def order_accomplish(self, order, trade):
         order.status = OrderStatus.FILLED
         trade.orderStatus = order.status
-        self._orders.__delitem__(order.orderID)
 
     def get_trade(self, orderID):
         return Trade()

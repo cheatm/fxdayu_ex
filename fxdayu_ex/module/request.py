@@ -11,6 +11,7 @@ class ReqOrder:
                  price=EMPTY_FLOAT,
                  orderType=EMPTY,
                  bsType=EMPTY,
+                 time=EMPTY,
                  info=EMPTY_STR):
         self.accountID = accountID
         self.code = code
@@ -18,6 +19,7 @@ class ReqOrder:
         self.price = price
         self.orderType = orderType
         self.bsType = bsType
+        self.time = time
         self.info = info
 
 

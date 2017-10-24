@@ -1,20 +1,29 @@
-from fxdayu_ex.server.frame.broker import Broker
-from fxdayu_ex.server.frame.exchange import Exchange, OrderPool
+from fxdayu_ex.server.frame.broker import Broker, Account
+from fxdayu_ex.server.frame.exchange import Exchange, OrderPool, Transactor
 from fxdayu_ex.server.frame.exceptions import *
 from fxdayu_ex.server.frame.engine import Engine, TickEvent, ReqEvent, RespEvent
-from fxdayu_ex.module.enums import OrderStatus, BSType, OrderType
+from fxdayu_ex.module.enums import OrderStatus, BSType, OrderType, CanceledReason
 from fxdayu_ex.module.storage import Order, Trade, Cash, Position
+from fxdayu_ex.module.request import ReqOrder
 from datetime import datetime
 
+
+SO = "sell order"
+BO = "buy order"
+ST = "sell trade"
+BT = "buy trade"
+CO = "cancel order"
+CSO = "cancel sell order"
+CBO = "cancel buy order"
 
 
 class FrameWork(Engine):
 
-    def __init__(self, exchange, broker, orderpool, orderIDs, tradeIDs):
+    def __init__(self, exchange, broker, orderIDs, tradeIDs):
         super(FrameWork, self).__init__()
         self.exchange = exchange
         self.broker = broker
-        self.orderpool = orderpool
+        self.orderpool = exchange.pool
         self.orderIDs = orderIDs
         self.tradeIDs = tradeIDs
 
@@ -42,63 +51,66 @@ class FrameWork(Engine):
         for trade in self.exchange.on_tick(tick):
             try:
                 account = self.broker.account(trade.accountID)
-            except AccountNotFound:
-                pass
+            except AccountNotFound as e:
+                self.account_not_found(e, "transact trade")
             else:
-                self.trade_handlers[trade.bsType.value](account, trade)
-
-            yield trade
+                result = self.trade_handlers[trade.bsType.value](account, trade)
+                if result is not None:
+                    self.trade_success(trade)
+                else:
+                    self.trade_fail(trade)
 
     def on_buy_trade(self, account, trade):
         try:
-            trade, order, cash, position = account.buy_trade(trade)
-        except OrderNotFound:
-            pass
-        except OrderTransactExceed:
-            pass
-        except CashUnfreezeExceed:
-            pass
-        except CashSubExceed:
-            pass
+            trade= account.buy_trade(trade)
+        except OrderNotFound as e:
+            self.order_not_found(e, BT)
+        except OrderTransactExceed as e:
+            self.order_transact_exceed(e, BT)
+        except CashUnfreezeExceed as e:
+            self.cash_unfreeze_exceed(e, BT)
+        except CashSubExceed as e:
+            self.cash_sub_exceed(e, BT)
         else:
-            self.buy_trade_success(trade, order, cash, position)
-
-    def buy_trade_success(self, trade, order, cash, position):
-        pass
+            return trade
 
     def on_sell_trade(self, account, trade):
         try:
             trade, order, cash, position = account.sell_trade(trade)
-        except OrderNotFound:
-            pass
-        except OrderTransactExceed:
-            pass
-        except PositionNotFound:
-            pass
-        except PositionUnfreezeExceed:
-            pass
+        except OrderNotFound as e:
+            self.order_not_found(e, ST)
+        except OrderTransactExceed as e:
+            self.order_transact_exceed(e, ST)
+        except PositionNotFound as e:
+            self.position_not_found(e, ST)
+        except PositionUnfreezeExceed as e:
+            self.position_unfreeze_exceed(e, ST)
         else:
-            self.sell_trade_success(trade, order, cash, position)
+            return trade
 
-    def sell_trade_success(self, trade, order, cash, position):
-        pass
+    def trade_fail(self, trade):
+        print("fail", trade)
+
+    def trade_success(self, trade):
+        print("success", trade)
 
     def on_req_order(self, req):
         order = self.create_order(req)
+        print(order)
         if order is None:
             return
 
         try:
             account = self.broker.account(order.accountID)
-        except AccountNotFound:
-            pass
+        except AccountNotFound as e:
+            self.account_not_found(e, "ReqOrder")
         else:
             self.order_handlers[order.bsType.value](account, order)
 
     def create_order(self, req):
-        if req.orderType.value == OrderType.LIMIT:
-            self._create_order(req)
-        elif req.orderType.value == OrderType.MARKET:
+        if req.orderType.value == OrderType.LIMIT.value:
+            return self._create_order(req)
+        elif req.orderType.value == OrderType.MARKET.value:
             try:
                 req.price = self.exchange.price_limit(req.code, req.bsType)
             except KeyError:
@@ -128,21 +140,25 @@ class FrameWork(Engine):
     def on_buy_order(self, account, order):
         try:
             order = account.buy_order(order)
-        except CashFreezeExceed:
-            pass
+        except CashFreezeExceed as e:
+            self.cash_freeze_exceed(e, BO)
+            self._cancel(order, CanceledReason.CASH)
         else:
             self.buy_order_success(order, account.cash)
 
     def buy_order_success(self, order, cash):
         self.on_order(order)
+        print(cash)
 
     def on_sell_order(self, account, order):
         try:
             order = account.sell_order(order)
-        except PositionNotFound:
-            pass
-        except PositionFreezeExceed:
-            pass
+        except PositionNotFound as e:
+            self.position_not_found(e, SO)
+            self._cancel(order, CanceledReason.POSITION)
+        except PositionFreezeExceed as e:
+            self.position_freeze_exceed(e, SO)
+            self._cancel(order, CanceledReason.POSITION)
         else:
             self.sell_order_success(order, account.get_position(order.code))
 
@@ -158,26 +174,34 @@ class FrameWork(Engine):
         try:
             account = self.broker.account(cancel.accountID)
             order = account.get_order(cancel.orderID)
-        except AccountNotFound:
-            pass
-        except OrderNotFound:
-            pass
+        except AccountNotFound as e:
+            self.account_not_found(e, CO)
+        except OrderNotFound as e:
+            self.order_not_found(e, CO)
         else:
-            return self.cancel_handlers[order.bsType.value](account, cancel)
+            order = self.cancel_handlers[order.bsType.value](account, cancel)
+            if order is not None:
+                self._cancel(order, CanceledReason.CLIENT)
 
     def cancel_sell(self, account, cancel):
         try:
             return account.cancel_buy(cancel.orderID)
-        except PositionNotFound:
-            pass
-        except PositionUnfreezeExceed:
-            pass
+        except PositionNotFound as e:
+            self.position_not_found(e, CSO)
+        except PositionUnfreezeExceed as e:
+            self.position_unfreeze_exceed(e, CSO)
 
     def cancel_buy(self, account, cancel):
         try:
             return account.cancel_buy(cancel.orderID)
-        except CashUnfreezeExceed:
-            pass
+        except CashUnfreezeExceed as e:
+            self.cash_unfreeze_exceed(e, CBO)
+
+    def _cancel(self, order, reason):
+        order.canceled = order.unfilled
+        order.status = OrderStatus.CANCELED
+        order.reason = reason
+        return order
 
     """------------------------------------------Exception Handlers------------------------------------------"""
 
@@ -216,4 +240,37 @@ class FrameWork(Engine):
         order = e.order
         trade = e.trade
         print("During", process, str(trade), "->", str(order), "exceed")
-        
+
+
+def simulation():
+    accountID = 103
+
+    tick = {'date': 20171018,
+         'code': '300667.XSHE',
+         'ask': [[46.4, 2600], [46.41, 600], [46.42, 1300], [46.43, 2900], [46.44, 200]],
+         'time': 94109000,
+         'bid': [[46.39, 200], [46.29, 1000], [46.28, 400], [46.2, 300], [46.19, 600]]}
+
+    req = ReqOrder(accountID, '300667.XSHE', 4000, 46.43, OrderType.LIMIT, BSType.BUY)
+
+    frame = generate(accountID)
+    frame.on_req_order(req)
+    frame.on_tick(tick)
+
+
+def generate(accountID):
+    from fxdayu_ex.utils.id_generator import TimerIDGenerator
+
+    tradeIDs = TimerIDGenerator.year()
+    orderIDs = TimerIDGenerator.year()
+    pool = OrderPool()
+    transactor = Transactor(tradeIDs, 0.0005, 0.0005)
+
+    account = Account(accountID, Cash(accountID, 10000000), {}, {})
+    broker = Broker({accountID: account})
+    frame = FrameWork(Exchange(pool, transactor), broker, orderIDs, tradeIDs)
+    return frame
+
+
+if __name__ == '__main__':
+    simulation()
