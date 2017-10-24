@@ -247,11 +247,11 @@ def simulation():
 
     tick = {'date': 20171018,
          'code': '300667.XSHE',
-         'ask': [[46.4, 2600], [46.41, 600], [46.42, 1300], [46.43, 2900], [46.44, 200]],
+         'ask': [[464000, 2600], [464100, 600], [464200, 1300], [464300, 2900], [464400, 200]],
          'time': 94109000,
          'bid': [[46.39, 200], [46.29, 1000], [46.28, 400], [46.2, 300], [46.19, 600]]}
 
-    req = ReqOrder(accountID, '300667.XSHE', 4000, 46.43, OrderType.LIMIT, BSType.BUY)
+    req = ReqOrder(accountID, '300667.XSHE', 4000, 464300, OrderType.LIMIT, BSType.BUY)
 
     frame = generate(accountID)
     frame.on_req_order(req)
@@ -266,7 +266,7 @@ def generate(accountID):
     pool = OrderPool()
     transactor = Transactor(tradeIDs, 0.0005, 0.0005)
 
-    account = Account(accountID, Cash(accountID, 10000000), {}, {})
+    account = Account(accountID, Cash(accountID, 100000000000), {}, {})
     broker = Broker({accountID: account})
     frame = FrameWork(Exchange(pool, transactor), broker, orderIDs, tradeIDs)
     return frame
