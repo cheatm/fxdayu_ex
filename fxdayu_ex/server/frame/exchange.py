@@ -133,13 +133,13 @@ class Transactor(object):
                 if order.unfilled <= volume:
                     yield Trade(
                         order.accountID, order.orderID, self.ids.next(), order.code, order.unfilled, price,
-                        order.order_type, order.bs_type,
+                        order.orderType, order.bsType,
                         order.unfilled*price*self.br, OrderStatus.FILLED.value, combine(tick[DATE], tick[TIME])
                     )
                 else:
                     yield Trade(
                         order.accountID, order.orderID, self.ids.next(), order.code, volume, price,
-                        order.order_type, order.bs_type,
+                        order.orderType, order.bsType,
                         volume*price*self.br, OrderStatus.FILLED.value, combine(tick[DATE], tick[TIME])
                     )
             else:

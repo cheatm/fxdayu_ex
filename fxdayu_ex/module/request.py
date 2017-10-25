@@ -8,7 +8,7 @@ class ReqOrder:
                  accountID=EMPTY_STR,
                  code=EMPTY_STR,
                  qty=EMPTY_INT,
-                 price=EMPTY_FLOAT,
+                 price=EMPTY_INT,
                  orderType=EMPTY,
                  bsType=EMPTY,
                  time=EMPTY,

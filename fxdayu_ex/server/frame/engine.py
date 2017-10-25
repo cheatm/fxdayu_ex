@@ -34,7 +34,7 @@ class Engine(Thread):
                 event = self.queue.get(3)
             except Empty as e:
                 self.queue_empty(e)
-                break
+                continue
 
             try:
                 self.handlers[event.type](event)
@@ -45,7 +45,7 @@ class Engine(Thread):
         self.queue.put(event)
 
     def handle_exception(self, e):
-        pass
+        print(e)
 
     def queue_empty(self, e):
         pass

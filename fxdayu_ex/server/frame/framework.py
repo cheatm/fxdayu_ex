@@ -4,7 +4,7 @@ from fxdayu_ex.server.frame.exceptions import *
 from fxdayu_ex.server.frame.engine import Engine, TickEvent, ReqEvent, RespEvent
 from fxdayu_ex.module.enums import OrderStatus, BSType, OrderType, CanceledReason
 from fxdayu_ex.module.storage import Order, Trade, Cash, Position
-from fxdayu_ex.module.request import ReqOrder
+from fxdayu_ex.module.request import ReqOrder, CancelOrder
 from datetime import datetime
 
 
@@ -47,6 +47,22 @@ class FrameWork(Engine):
             BSType.SELL.value: exchange.transactor.sr,
         }
 
+        self.handlers = {
+            ReqEvent.type: self.handle_req,
+            TickEvent.type: self.handle_tick
+        }
+
+
+    def handle_tick(self, event):
+        self.on_tick(event.tick)
+
+    def handle_req(self, event):
+        req = event.req
+        if isinstance(req, ReqOrder):
+            self.on_req_order(req)
+        elif isinstance(req, CancelOrder):
+            self.on_cancel(req)
+
     def on_tick(self, tick):
         for trade in self.exchange.on_tick(tick):
             try:
@@ -72,11 +88,12 @@ class FrameWork(Engine):
         except CashSubExceed as e:
             self.cash_sub_exceed(e, BT)
         else:
+            print(account.get_order(trade.orderID))
             return trade
 
     def on_sell_trade(self, account, trade):
         try:
-            trade, order, cash, position = account.sell_trade(trade)
+            trade = account.sell_trade(trade)
         except OrderNotFound as e:
             self.order_not_found(e, ST)
         except OrderTransactExceed as e:
@@ -86,6 +103,9 @@ class FrameWork(Engine):
         except PositionUnfreezeExceed as e:
             self.position_unfreeze_exceed(e, ST)
         else:
+            print(account.cash)
+            print(account.get_position(trade.code))
+            self.put(ReqEvent(CancelOrder(trade.accountID, trade.orderID)))
             return trade
 
     def trade_fail(self, trade):
@@ -168,6 +188,7 @@ class FrameWork(Engine):
     def on_order(self, order):
         if order.status.value == OrderStatus.UNFILLED.value:
             self.orderpool.put(order)
+        self.listen(order.code)
         return order
 
     def on_cancel(self, cancel):
@@ -182,6 +203,8 @@ class FrameWork(Engine):
             order = self.cancel_handlers[order.bsType.value](account, cancel)
             if order is not None:
                 self._cancel(order, CanceledReason.CLIENT)
+                print(order)
+                print(account.cash)
 
     def cancel_sell(self, account, cancel):
         try:
@@ -198,7 +221,8 @@ class FrameWork(Engine):
             self.cash_unfreeze_exceed(e, CBO)
 
     def _cancel(self, order, reason):
-        order.canceled = order.unfilled
+        canceled = order.unfilled
+        order.canceled += canceled
         order.status = OrderStatus.CANCELED
         order.reason = reason
         return order
@@ -249,24 +273,29 @@ def simulation():
          'code': '300667.XSHE',
          'ask': [[464000, 2600], [464100, 600], [464200, 1300], [464300, 2900], [464400, 200]],
          'time': 94109000,
-         'bid': [[46.39, 200], [46.29, 1000], [46.28, 400], [46.2, 300], [46.19, 600]]}
+         'bid': [[463900, 200], [462900, 1000], [462800, 400], [462000, 300], [461900, 600]]}
 
-    req = ReqOrder(accountID, '300667.XSHE', 4000, 464300, OrderType.LIMIT, BSType.BUY)
+    req = ReqOrder(accountID, '300667.XSHE', 3000, 464300, OrderType.LIMIT, BSType.BUY)
+    req_sell = ReqOrder(accountID, "300667.XSHE", 1000, 463900, OrderType.LIMIT, BSType.SELL)
 
     frame = generate(accountID)
-    frame.on_req_order(req)
-    frame.on_tick(tick)
-
+    frame.put(ReqEvent(req))
+    frame.put(ReqEvent(req_sell))
+    frame.put(TickEvent(tick))
+    frame.start()
 
 def generate(accountID):
     from fxdayu_ex.utils.id_generator import TimerIDGenerator
+    from fxdayu_ex.utils.cal import Rate
 
     tradeIDs = TimerIDGenerator.year()
     orderIDs = TimerIDGenerator.year()
     pool = OrderPool()
-    transactor = Transactor(tradeIDs, 0.0005, 0.0005)
+    transactor = Transactor(tradeIDs, Rate(5, 10000), Rate(5, 10000))
 
-    account = Account(accountID, Cash(accountID, 100000000000), {}, {})
+    account = Account(accountID, Cash(accountID, 100000000000),
+                      {"300667.XSHE": Position(accountID, "300667.XSHE", 3000, 3000)},
+                      {})
     broker = Broker({accountID: account})
     frame = FrameWork(Exchange(pool, transactor), broker, orderIDs, tradeIDs)
     return frame

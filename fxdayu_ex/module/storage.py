@@ -18,7 +18,7 @@ class Cash(Structure):
 
     __slots__ = ["accountID", "available", "frozen"]
 
-    def __init__(self, accountID=EMPTY_INT, available=EMPTY_FLOAT, freeze=EMPTY_FLOAT):
+    def __init__(self, accountID=EMPTY_INT, available=EMPTY_INT, freeze=EMPTY_INT):
         self.accountID = accountID
         self.available = available
         self.frozen = freeze
@@ -87,10 +87,10 @@ class Order(Structure):
                  orderType=OrderType.LIMIT,
                  bsType=BSType.BUY,
                  status=OrderStatus.UNFILLED,
-                 frzAmt=EMPTY_FLOAT,
-                 frzFee=EMPTY_FLOAT,
-                 cumAmt=EMPTY_FLOAT,
-                 cumFee=EMPTY_FLOAT,
+                 frzAmt=EMPTY_INT,
+                 frzFee=EMPTY_INT,
+                 cumAmt=EMPTY_INT,
+                 cumFee=EMPTY_INT,
                  canceled=EMPTY_INT,
                  reason=CanceledReason.NONE,
                  time=EMPTY,
@@ -128,10 +128,10 @@ class Trade(Structure):
                  tradeID=EMPTY_INT,
                  code=EMPTY_STR,
                  qty=EMPTY_INT,
-                 price=EMPTY_FLOAT,
+                 price=EMPTY_INT,
                  orderType=OrderType.LIMIT,
                  bsType=BSType.BUY,
-                 fee=EMPTY_FLOAT,
+                 fee=EMPTY_INT,
                  orderStatus=OrderStatus.UNFILLED,
                  time=EMPTY
                  ):
