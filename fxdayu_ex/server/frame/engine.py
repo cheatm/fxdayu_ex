@@ -2,14 +2,40 @@ from threading import Thread
 from queue import Queue, Empty
 
 
+class Consumer(Thread):
 
-class Engine(Thread):
+    def __init__(self, queue, timeout):
+        self.queue = queue
+        self.timeout = timeout
+        self._running = False
+        super(Consumer, self).__init__()
+
+    def start(self):
+        if not self._running:
+            self._running = True
+            super(Consumer, self).start()
+
+    def run(self):
+        while self._running:
+            try:
+                quest = self.queue.get(timeout=self.timeout)
+            except Empty as e:
+                self.handle_empty(e)
+            else:
+                self.handle(quest)
+
+    def handle(self, quest):
+        pass
+
+    def handle_empty(self, e):
+        pass
+
+
+class Engine(Consumer):
 
     def __init__(self):
-        super(Engine, self).__init__()
-        self.queue = Queue()
+        super(Engine, self).__init__(Queue(), 3)
         self.handlers = {}
-        self._running = False
 
     def __setitem__(self, key, value):
         self.handlers[key] = value
@@ -20,26 +46,11 @@ class Engine(Thread):
     def pop_handler(self, key):
         return self.handlers.pop(key, None)
 
-    def start(self):
-        if not self._running:
-            self._running = True
-        else:
-            return
-
-        super(Engine, self).start()
-
-    def run(self):
-        while self._running:
-            try:
-                event = self.queue.get(3)
-            except Empty as e:
-                self.queue_empty(e)
-                continue
-
-            try:
-                self.handlers[event.type](event)
-            except Exception as e:
-                self.handle_exception(e)
+    def handle(self, event):
+        try:
+            self.handlers[event.type](event)
+        except Exception as e:
+            self.handle_exception(e)
 
     def put(self, event):
         self.queue.put(event)

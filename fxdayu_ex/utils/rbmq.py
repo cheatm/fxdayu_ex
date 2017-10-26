@@ -134,9 +134,9 @@ class MQRequestListener(MQExchangeConstructor):
     def add(self, name, handler):
         self._handlers[name] = consumer_ack(handler)
         if self.channel is not None and self.channel.is_open:
-            self.consume(name)
+            self._consume(name)
 
-    def consume(self, name):
+    def _consume(self, name):
         self.channel.queue_declare(self.on_queue_open, name)
 
     def on_connection_open(self, connection):
@@ -149,7 +149,7 @@ class MQRequestListener(MQExchangeConstructor):
 
     def on_exchange_declare(self, method):
         for name in self._handlers.keys():
-            self.consume(name)
+            self._consume(name)
 
     def on_queue_open(self, method):
         queue = method.method.queue
@@ -179,7 +179,7 @@ class MQHeaderPublisher(MQExchangeConstructor):
 
     def on_connection_open(self, connection):
         connection.channel(self.on_channel_open)
-    
+
     def on_channel_open(self, channel):
         self.channel = channel
 

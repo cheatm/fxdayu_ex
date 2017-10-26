@@ -134,11 +134,12 @@ class FrameWork(Engine):
             try:
                 req.price = self.exchange.price_limit(req.code, req.bsType)
             except KeyError:
-                self.listen(req.code)
-                self.put(ReqEvent(req))
-                return None
+                self.snapshot_not_found(req)
             else:
                 return self._create_order(req)
+
+    def snapshot_not_found(self, req):
+        pass
 
     def listen(self, code):
         pass

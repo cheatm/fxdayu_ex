@@ -1,6 +1,7 @@
 # encoding:utf-8
 from fxdayu_ex.module.empty import *
 from fxdayu_ex.module.enums import *
+from fxdayu_ex.utils.json_adapt import JSONAdaptor
 
 
 class Structure:
@@ -14,9 +15,11 @@ class Structure:
         )
 
 
-class Cash(Structure):
+class Cash(Structure, JSONAdaptor):
 
-    __slots__ = ["accountID", "available", "frozen"]
+    __slots__ = ("accountID", "available", "frozen")
+
+    DIRECT = __slots__
 
     def __init__(self, accountID=EMPTY_INT, available=EMPTY_INT, frozen=EMPTY_INT):
         self.accountID = accountID
@@ -72,10 +75,18 @@ class CashSubExceed(Exception):
         self.sub = sub
 
 
-class Order(Structure):
+class Order(Structure, JSONAdaptor):
 
-    __slots__ = ["accountID", "orderID", "code", "qty", "cumQty", "price", "orderType", "bsType", "orderStatus",
-                 "frzAmt", "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime"]
+    __slots__ = ("accountID", "orderID", "code", "qty", "cumQty", "price", "orderType", "bsType", "orderStatus",
+                 "frzAmt", "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime")
+
+    DIRECT = ("accountID", "orderID", "code", "qty", "cumQty", "price", "frzAmt",
+              "frzFee", "cumAmt", "cumFee", "canceled", "time", "cnfmTime")
+
+    ENUMS = (("orderType", OrderType), ("bsType", BSType), ("orderStatus", OrderStatus), ("reason", CanceledReason))
+
+    FORMAT = "Y-%m-%d %H:%M:%S"
+
 
     def __init__(self,
                  accountID=EMPTY_STR,
@@ -118,9 +129,14 @@ class Order(Structure):
         return self.qty - self.cumQty - self.canceled
 
 
-class Trade(Structure):
+class Trade(Structure, JSONAdaptor):
+
     __slots__ = ["accountID", "orderID", "tradeID", "code", "qty", "price", "orderType", "bsType", "fee",
                  "orderStatus", "time"]
+
+    DIRECT = ("accountID", "orderID", "tradeID", "code", "qty", "price", "fee", "time")
+
+    ENUMS = ("orderType", "bsType", "orderStatus")
 
     def __init__(self,
                  accountID=EMPTY_STR,
@@ -151,9 +167,11 @@ class Trade(Structure):
         return self.accountID == other.accountID
 
 
-class Position(Structure):
+class Position(Structure, JSONAdaptor):
 
     __slots__ = ["accountID", "code", "origin", "available", "frozen", "today", "todaySell"]
+
+    DIRECT = __slots__
 
     def __init__(self,
                  accountID=EMPTY_STR,
@@ -202,6 +220,7 @@ class Position(Structure):
         self.today = 0
         self.origin = self.available
 
+
 class PositionFreezeExceed(Exception):
 
     def __init__(self, accountID, code, available, qty):
@@ -221,3 +240,4 @@ class PositionUnfreezeExceed(Exception):
 
 
 class PositionSubExceed(PositionUnfreezeExceed): pass
+

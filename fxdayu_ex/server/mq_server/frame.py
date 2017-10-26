@@ -46,6 +46,7 @@ class MQFrameWork(FrameWork):
     def _load_req_fail(self, req, e):
         print(req, e)
 
+
 def simulation():
     accountID = 103
     frame = generate(accountID)
