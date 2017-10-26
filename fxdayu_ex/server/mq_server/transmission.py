@@ -1,26 +1,26 @@
 from itertools import chain
-from fxdayu_ex.module.enums import BSType, OrderType
+from fxdayu_ex.module.enums import BSType, OrderType, CanceledReason, OrderStatus
 from fxdayu_ex.module.request import ReqOrder, CancelOrder
 from fxdayu_ex.module.storage import Cash, Order, Trade, Position
 
 
-def dct2obj_cons(cls, directs, funcs):
-    def dct2obj(dct):
+def dct2obj(cls, directs, funcs):
+    def obj(dct):
         return cls(**dict(chain(
             ((name, dct[name]) for name in directs),
             ((name, func(dct[name])) for name, func in funcs)
         )))
 
-    return dct2obj
+    return obj
 
 
-def obj2dct_cons(directs, funcs):
-    def obj2dct(obj):
+def obj2dct(directs, funcs):
+    def dct(obj):
         return dict(chain(
             ((name, getattr(obj, name)) for name in directs),
             ((name, func(getattr(obj, name))) for name, func in funcs),
         ))
-    return obj2dct
+    return dct
 
 
 def enum_value(ens):
@@ -28,47 +28,63 @@ def enum_value(ens):
 
 
 ACCOUNT_ID = "accountID"
+ORDER_ID = "orderID"
 CODE = "code"
 QTY = "qty"
 PRICE = "price"
-ORD_TYPE = "orderType"
-BS_TYPE = "bsType"
 TIME = "time"
 INFO = "info"
+AVL = "available"
+FRZ = "frozen"
 
+ORD_TYPE = "orderType"
+ORD_TYPE_VALUE = (ORD_TYPE, enum_value)
+ORD_TYPE_ENUM = (ORD_TYPE, OrderType)
 
+BS_TYPE = "bsType"
+DUMP_BS_TYPE = (BS_TYPE, enum_value)
+LOAD_BS_TYPE = (BS_TYPE, BSType)
+
+REASON = "reason"
+REASON_VALUE = (REASON, enum_value)
+REASON_ENUM = (REASON, CanceledReason)
+
+STATUS = "orderStatus"
+STATUS_VALUE = (STATUS, enum_value)
+STATUS_ENUM = (STATUS, OrderStatus)
+
+# RecOrder
 ro_direct = (ACCOUNT_ID, CODE, QTY, PRICE, TIME, INFO)
-ro_func_d2o = ((ORD_TYPE, OrderType), (BS_TYPE, BSType))
-ro_func_o2d = ((ORD_TYPE, enum_value), (BS_TYPE, enum_value))
+load_req = dct2obj(ReqOrder, ro_direct, (LOAD_BS_TYPE, ORD_TYPE_ENUM))
+dump_req = obj2dct(ro_direct, (DUMP_BS_TYPE, ORD_TYPE_VALUE))
 
 
-dct2ro = dct2obj_cons(ReqOrder, ro_direct, ro_func_d2o)
-ro2dct = obj2dct_cons(ro_direct, ro_func_o2d)
+# CancelOrder
+load_cancel = dct2obj(CancelOrder, (ACCOUNT_ID, ORDER_ID), ())
+dump_cancel = obj2dct((ACCOUNT_ID, ORDER_ID), ())
 
 
-if __name__ == '__main__':
-    # print(dct2ro({ACCOUNT_ID: 12, CODE: "000001.XSHE", QTY: 300, PRICE:0, ORD_TYPE: 1, BS_TYPE: 1, TIME: "", INFO: ""}))
-    print(ro2dct(ReqOrder(orderType=OrderType.LIMIT, bsType=BSType.BUY)))
+# Cash
+CASH = (ACCOUNT_ID, AVL, FRZ)
 
-# def dct2ro(dct):
-#     return ReqOrder(dct[ACCOUNT_ID], dct[CODE], dct[QTY], dct[PRICE],
-#                     OrderType(dct[ORD_TYPE]), BSType(dct[BS_TYPE]),
-#                     dct[TIME], dct[INFO])
-#
-#
-# def ro2dct(req):
-#     dct = {name: getattr(req, name) for name in ro_direct}
-#     for name, func in ro_func.items():
-#         dct[name] = func(getattr(req, name))
-#     return dct
-#
-#
-# ord_direct = ()
-# ord_func = ()
-#
-#
-# def dct2ord(dct):
-#     return Order(**dict(chain(
-#         ((name, dct[name]) for name in ord_direct),
-#         ((name, func(dct[name])) for name, func in ord_func)
-#     )))
+load_cash = dct2obj(Cash, CASH, ())
+dump_cash = obj2dct(CASH, ())
+
+
+# Order
+ORDER = ("accountID", "orderID", "code", "qty", "cumQty", "price", "frzAmt",
+         "frzFee", "cumAmt", "cumFee",  "canceled", "time", "cnfmTime")
+load_order = dct2obj(Order, ORDER, (ORD_TYPE_ENUM, LOAD_BS_TYPE, STATUS_ENUM, REASON_ENUM))
+dump_order = obj2dct(ORDER, (ORD_TYPE_VALUE, DUMP_BS_TYPE, STATUS_VALUE, REASON_VALUE))
+
+
+# Trade
+TRADE = ["accountID", "orderID", "tradeID", "code", "qty", "price", "fee", "time"]
+load_trade = dct2obj(Trade, TRADE, (ORD_TYPE_ENUM, LOAD_BS_TYPE, STATUS_ENUM))
+dump_trade = obj2dct(TRADE, (ORD_TYPE_VALUE, DUMP_BS_TYPE, STATUS_VALUE))
+
+
+# Position
+POSITION = ["accountID", "code", "origin", "available", "frozen", "today", "todaySell"]
+load_position = dct2obj(Position, POSITION, ())
+dump_position = obj2dct(POSITION, ())

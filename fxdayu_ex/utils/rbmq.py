@@ -1,5 +1,5 @@
 # encoding:utf-8
-from pika import TornadoConnection, URLParameters
+from pika import TornadoConnection, URLParameters, BasicProperties
 import json
 
 
@@ -165,6 +165,23 @@ class MQRequestListener(MQExchangeConstructor):
 
     def consumer_canceled(self, *args):
         print(*args)
+
+
+class MQHeaderPublisher(MQExchangeConstructor):
+
+    def __init__(self, connection, exchange):
+        self.channel = None
+        super(MQHeaderPublisher, self).__init__(connection, exchange)
+
+    def publish(self, body, headers):
+        if self.channel.is_open:
+            self.channel.basic_publish(self.exchange, "", body, BasicProperties(headers=headers))
+
+    def on_connection_open(self, connection):
+        connection.channel(self.on_channel_open)
+    
+    def on_channel_open(self, channel):
+        self.channel = channel
 
 
 def consumer_ack(handler):

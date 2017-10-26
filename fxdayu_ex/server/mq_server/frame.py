@@ -2,6 +2,7 @@ from fxdayu_ex.server.frame.framework import FrameWork, TickEvent, ReqEvent, Res
 from fxdayu_ex.module.request import ReqOrder, CancelOrder
 from fxdayu_ex.utils.rbmq import MQHeaderListener
 from fxdayu_ex.module.enums import OrderType, BSType
+from fxdayu_ex.server.mq_server.transmission import load_req
 import json
 
 
@@ -11,6 +12,7 @@ class MQFrameWork(FrameWork):
         self.connection = connection
         self.listener = MQHeaderListener(self.connection, "Tick")
         self.listener.handle = self.put_tick
+        self.listener.add("all", {})
         super(MQFrameWork, self).__init__(exchange, broker, orderIDs, tradeIDs)
 
     def start(self):
@@ -35,12 +37,14 @@ class MQFrameWork(FrameWork):
 
     def put_req_order(self, req):
         try:
-            req = json.loads(req)
+            req = load_req(json.loads(req))
         except Exception as e:
-            pass
+            self._load_req_fail(req, e)
+        else:
+            self.put(ReqEvent(req))
 
-        req = ReqOrder(req['accountID'], req["code"])
-
+    def _load_req_fail(self, req, e):
+        print(req, e)
 
 def simulation():
     accountID = 103

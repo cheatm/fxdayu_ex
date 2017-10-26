@@ -18,10 +18,10 @@ class Cash(Structure):
 
     __slots__ = ["accountID", "available", "frozen"]
 
-    def __init__(self, accountID=EMPTY_INT, available=EMPTY_INT, freeze=EMPTY_INT):
+    def __init__(self, accountID=EMPTY_INT, available=EMPTY_INT, frozen=EMPTY_INT):
         self.accountID = accountID
         self.available = available
-        self.frozen = freeze
+        self.frozen = frozen
 
     def freeze(self, num):
         if self.available >= num:
@@ -74,8 +74,8 @@ class CashSubExceed(Exception):
 
 class Order(Structure):
 
-    __slots__ = ["accountID", "orderID", "code", "qty", "cumQty", "price", "orderType", "bsType", "status", "frzAmt",
-                 "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime"]
+    __slots__ = ["accountID", "orderID", "code", "qty", "cumQty", "price", "orderType", "bsType", "orderStatus",
+                 "frzAmt", "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime"]
 
     def __init__(self,
                  accountID=EMPTY_STR,
@@ -86,7 +86,7 @@ class Order(Structure):
                  price=EMPTY_FLOAT,
                  orderType=OrderType.LIMIT,
                  bsType=BSType.BUY,
-                 status=OrderStatus.UNFILLED,
+                 orderStatus=OrderStatus.UNFILLED,
                  frzAmt=EMPTY_INT,
                  frzFee=EMPTY_INT,
                  cumAmt=EMPTY_INT,
@@ -109,7 +109,7 @@ class Order(Structure):
         self.cumFee = cumFee
         self.canceled = canceled
         self.reason = reason
-        self.status = status
+        self.orderStatus = orderStatus
         self.time = time
         self.cnfmTime = cnfmTime
 

@@ -186,7 +186,7 @@ class FrameWork(Engine):
         self.on_order(order)
 
     def on_order(self, order):
-        if order.status.value == OrderStatus.UNFILLED.value:
+        if order.orderStatus.value == OrderStatus.UNFILLED.value:
             self.orderpool.put(order)
         self.listen(order.code)
         return order
@@ -223,7 +223,7 @@ class FrameWork(Engine):
     def _cancel(self, order, reason):
         canceled = order.unfilled
         order.canceled += canceled
-        order.status = OrderStatus.CANCELED
+        order.orderStatus = OrderStatus.CANCELED
         order.reason = reason
         return order
 

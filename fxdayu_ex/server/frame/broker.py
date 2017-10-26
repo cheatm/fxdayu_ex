@@ -16,36 +16,6 @@ class Broker(object):
         """Get account instance from accountID"""
         return self.accounts[accountID]
 
-    def order(self, order):
-        order = self.account(order.accountID).send_order(order)
-        if order.status.value == OrderStatus.UNFILLED.value:
-            self.pool.put(order)
-
-        return order
-
-    def cancel(self, cancel):
-        order = self.account(cancel.accountID).cancel_order(cancel.orderID)
-        if order.status.value == OrderStatus.CANCELED.value:
-            pass
-
-    def trade(self, trade):
-        if isinstance(trade, Trade):
-            self.account(trade.accountID).transaction(trade)
-            return trade
-
-    def get_order(self, qry_order):
-        if isinstance(qry_order, QryOrder):
-            return self.account(qry_order.accountID).get_order(qry_order.orderID)
-
-    def get_trade(self, qry_trade):
-        return self.account(qry_trade.accountID).get_trade(qry_trade.orderID)
-
-    def get_position(self, qry_position):
-        return self.account(qry_position.accountID).get_position(qry_position.code)
-
-    def cash(self, accountID):
-        return self.account(accountID).cash
-
     def snapshot(self, accountID):
         account = self.account(accountID)
         return {
@@ -70,19 +40,19 @@ class Account(AbstractAccount):
         frz = order.frzAmt + order.frzFee
         self._cash.freeze(frz)
         self._orders[order.orderID] = order
-        order.status = OrderStatus.UNFILLED
+        order.orderStatus = OrderStatus.UNFILLED
         return order
 
     def sell_order(self, order):
         position = self.get_position(order.code)
         position.freeze(order.qty)
         self._orders[order.orderID] = order
-        order.status = OrderStatus.UNFILLED
+        order.orderStatus = OrderStatus.UNFILLED
         return order
 
     @staticmethod
     def _cancel(order, reason, qty):
-        order.status = OrderStatus.CANCELED
+        order.orderStatus = OrderStatus.CANCELED
         order.reason = reason
         order.canceled = qty
         return order
@@ -181,7 +151,7 @@ class Account(AbstractAccount):
         self._cash.add(trade.qty*trade.price-trade.fee)
 
     def order_accomplish(self, order, trade):
-        order.status = OrderStatus.FILLED
+        order.orderStatus = OrderStatus.FILLED
         trade.orderStatus = order.status
 
     def get_trade(self, orderID):
