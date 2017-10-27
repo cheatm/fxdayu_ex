@@ -5,6 +5,7 @@ from fxdayu_ex.server.frame.engine import Engine, TickEvent, ReqEvent, RespEvent
 from fxdayu_ex.module.enums import OrderStatus, BSType, OrderType, CanceledReason
 from fxdayu_ex.module.storage import Order, Trade, Cash, Position
 from fxdayu_ex.module.request import ReqOrder, CancelOrder
+import logging
 from datetime import datetime
 
 
@@ -68,7 +69,7 @@ class FrameWork(Engine):
             try:
                 account = self.broker.account(trade.accountID)
             except AccountNotFound as e:
-                self.account_not_found(e, "transact trade")
+                logging.warning("AccountNotFound%s during transact", e)
             else:
                 result = self.trade_handlers[trade.bsType.value](account, trade)
                 if result is not None:
@@ -78,54 +79,58 @@ class FrameWork(Engine):
 
     def on_buy_trade(self, account, trade):
         try:
-            trade= account.buy_trade(trade)
+            trade = account.buy_trade(trade)
         except OrderNotFound as e:
-            self.order_not_found(e, BT)
+            logging.warning("OrderNotFound%s during %s: %s", e, BT, trade)
         except OrderTransactExceed as e:
-            self.order_transact_exceed(e, BT)
+            logging.warning("OrderTransactExceed%s during %s: %s, %s", e, BT, trade, account.get_order(trade.orderID))
         except CashUnfreezeExceed as e:
-            self.cash_unfreeze_exceed(e, BT)
+            logging.warning("CashUnfreezeExceed%s during %s: %s, %s, %s",
+                            e, BT, account.cash, account.get_order(trade.orderID), trade)
         except CashSubExceed as e:
-            self.cash_sub_exceed(e, BT)
+            logging.warning("CashSubExceed%s during %s: %s, %s, %s",
+                            e, BT, account.cash, account.get_order(trade.orderID), trade)
         else:
-            print(account.get_order(trade.orderID))
             return trade
 
     def on_sell_trade(self, account, trade):
         try:
             trade = account.sell_trade(trade)
         except OrderNotFound as e:
-            self.order_not_found(e, ST)
+            logging.warning("OrderNotFound%s during %s: %s", e, ST, trade)
         except OrderTransactExceed as e:
-            self.order_transact_exceed(e, ST)
+            logging.warning("OrderTransactExceed%s during %s: %s, %s", e, ST, trade, account.get_order(trade.orderID))
         except PositionNotFound as e:
-            self.position_not_found(e, ST)
+            logging.warning("PositionNotFound%s during %s: %s", e, ST, trade)
         except PositionUnfreezeExceed as e:
-            self.position_unfreeze_exceed(e, ST)
+            logging.warning("PositionUnfreezeExceed%s during %s: %s, %s", e, ST, trade, account.get_position(trade.code))
         else:
-            print(account.cash)
-            print(account.get_position(trade.code))
             self.put(ReqEvent(CancelOrder(trade.accountID, trade.orderID)))
             return trade
 
     def trade_fail(self, trade):
-        print("fail", trade)
+        logging.warning("%s fail", trade)
 
     def trade_success(self, trade):
-        print("success", trade)
+        logging.info("%s success", trade)
 
     def on_req_order(self, req):
         order = self.create_order(req)
-        print(order)
         if order is None:
             return
 
         try:
             account = self.broker.account(order.accountID)
         except AccountNotFound as e:
-            self.account_not_found(e, "ReqOrder")
+            logging.warning("AccountNotFound%s during req order: %s", e, req)
         else:
             self.order_handlers[order.bsType.value](account, order)
+            logging.warning(str(account.cash))
+        finally:
+            self.save_req_order(req)
+
+    def save_req_order(self, req):
+        pass
 
     def create_order(self, req):
         if req.orderType.value == OrderType.LIMIT.value:
@@ -139,7 +144,7 @@ class FrameWork(Engine):
                 return self._create_order(req)
 
     def snapshot_not_found(self, req):
-        pass
+        logging.warning("Snapshot of %s not found", req.code)
 
     def listen(self, code):
         pass
@@ -156,29 +161,29 @@ class FrameWork(Engine):
                      req.code, req.qty,
                      price=req.price, bsType=req.bsType,
                      frzAmt=frzAmt, frzFee=frzFee,
-                     time=req.time, cnfmTime=datetime.now())
+                     time=req.time, cnfmTime=str(datetime.now()),
+                     info=req.info)
 
     def on_buy_order(self, account, order):
         try:
             order = account.buy_order(order)
         except CashFreezeExceed as e:
-            self.cash_freeze_exceed(e, BO)
+            logging.warning("CashFreezeExceed(%s) during buy order: %s %s", e, account.cash, order)
             self._cancel(order, CanceledReason.CASH)
         else:
             self.buy_order_success(order, account.cash)
 
     def buy_order_success(self, order, cash):
         self.on_order(order)
-        print(cash)
 
     def on_sell_order(self, account, order):
         try:
             order = account.sell_order(order)
         except PositionNotFound as e:
-            self.position_not_found(e, SO)
+            logging.warning("PositionNotFound(%s) during sell order: %s", e, order)
             self._cancel(order, CanceledReason.POSITION)
         except PositionFreezeExceed as e:
-            self.position_freeze_exceed(e, SO)
+            logging.warning("PositionFreezeExceed(%s) during sell order: %s", e, order)
             self._cancel(order, CanceledReason.POSITION)
         else:
             self.sell_order_success(order, account.get_position(order.code))
@@ -189,7 +194,6 @@ class FrameWork(Engine):
     def on_order(self, order):
         if order.orderStatus.value == OrderStatus.UNFILLED.value:
             self.orderpool.put(order)
-        self.listen(order.code)
         return order
 
     def on_cancel(self, cancel):
@@ -197,29 +201,27 @@ class FrameWork(Engine):
             account = self.broker.account(cancel.accountID)
             order = account.get_order(cancel.orderID)
         except AccountNotFound as e:
-            self.account_not_found(e, CO)
+            logging.warning("AccountNotFound%s during %s: %s", e, CO, cancel)
         except OrderNotFound as e:
-            self.order_not_found(e, CO)
+            logging.warning("OrderNotFound%s during %s: %s", e, CO, cancel)
         else:
             order = self.cancel_handlers[order.bsType.value](account, cancel)
             if order is not None:
                 self._cancel(order, CanceledReason.CLIENT)
-                print(order)
-                print(account.cash)
 
     def cancel_sell(self, account, cancel):
         try:
-            return account.cancel_buy(cancel.orderID)
+            return account.cancel_sell(cancel.orderID)
         except PositionNotFound as e:
-            self.position_not_found(e, CSO)
+            logging.warning("PositionNotFound%s during %s: %s", e, CSO, cancel)
         except PositionUnfreezeExceed as e:
-            self.position_unfreeze_exceed(e, CSO)
+            logging.warning("PositionUnfreezeExceed%s during %s: %s", e, CSO, cancel)
 
     def cancel_buy(self, account, cancel):
         try:
             return account.cancel_buy(cancel.orderID)
         except CashUnfreezeExceed as e:
-            self.cash_unfreeze_exceed(e, CBO)
+            logging.warning("CashUnfreezeExceed%s during %s: %s %s", e, CBO, cancel, account.cash)
 
     def _cancel(self, order, reason):
         canceled = order.unfilled
@@ -227,44 +229,6 @@ class FrameWork(Engine):
         order.orderStatus = OrderStatus.CANCELED
         order.reason = reason
         return order
-
-    """------------------------------------------Exception Handlers------------------------------------------"""
-
-    def exception_output(self, process, name, end="", **kwargs):
-        print("During", process, self.simple_output(name, **kwargs), end)
-
-    @staticmethod
-    def simple_output(name, **kwargs):
-        return "%s(%s)" % (name, ', '.join(["%s=%s" % (key, value) for key, value in kwargs.items()]))
-
-    def account_not_found(self, e, process=""):
-        self.exception_output(process, "Account", "not found", accountID=e.accountID)
-
-    def order_not_found(self, e, process=""):
-        self.exception_output(process, "Order", accountID=e.accountID, orderID=e.orderID)
-
-    def position_not_found(self, e, process=""):
-        self.exception_output(process, "Position", accountID=e.accountID, code=e.code)
-
-    def position_unfreeze_exceed(self, e, process=""):
-        self.exception_output(process, "Position", e.qty, accountID=e.accountID, code=e.code, frozen=e.frozen)
-
-    def position_freeze_exceed(self, e, process=""):
-        self.exception_output(process, "Position", e.qty, accountID=e.accountID, code=e.code, available=e.available)
-
-    def cash_freeze_exceed(self, e, process=""):
-        self.exception_output(process, "Cash", e.freeze, accountID=e.accountID, available=e.available)
-
-    def cash_unfreeze_exceed(self, e, process=""):
-        self.exception_output(process, "Cash", e.unfreeze, accountID=e.accountID, frozen=e.frozen)
-
-    def cash_sub_exceed(self, e, process=""):
-        self.exception_output(process, "Cash", e.sub, accountID=e.accountID, frozen=e.frozen)
-
-    def order_transact_exceed(self, e, process=""):
-        order = e.order
-        trade = e.trade
-        print("During", process, str(trade), "->", str(order), "exceed")
 
 
 def simulation():
@@ -294,7 +258,7 @@ def generate(accountID):
     pool = OrderPool()
     transactor = Transactor(tradeIDs, Rate(5, 10000), Rate(5, 10000))
 
-    account = Account(accountID, Cash(accountID, 100000000000),
+    account = Account(accountID, Cash(accountID, 100000),
                       {"300667.XSHE": Position(accountID, "300667.XSHE", 3000, 3000)},
                       {})
     broker = Broker({accountID: account})

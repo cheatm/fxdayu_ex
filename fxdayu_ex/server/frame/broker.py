@@ -152,7 +152,7 @@ class Account(AbstractAccount):
 
     def order_accomplish(self, order, trade):
         order.orderStatus = OrderStatus.FILLED
-        trade.orderStatus = order.status
+        trade.orderStatus = order.orderStatus
 
     def get_trade(self, orderID):
         return Trade()
@@ -210,6 +210,7 @@ class OrderTransactExceed(Exception):
     def __init__(self, order, trade):
         self.order = order
         self.trade = trade
+
 
 
 def acc_t():

@@ -25,7 +25,7 @@ class Exchange(object):
 
     def price_limit(self, code, bstype):
         snapshot = self.snapshots[code]
-        return snapshot[PRE] * self.limits[bstype.value]
+        return int((snapshot[PRE] * self.limits[bstype.value])/100)*100
 
     def on_tick(self, tick):
         code = tick[CODE]
@@ -43,12 +43,12 @@ class OrderPool(object):
         self.packs = packs
 
     def put(self, order):
-        self._get_pack(order.code).put(order)
+        self.pack(order.code).put(order)
 
     def cancel(self, order):
-        self._get_pack(order.code).cancel(order)
+        self.pack(order.code).cancel(order)
 
-    def _get_pack(self, name):
+    def pack(self, name):
         try:
             pack = self.packs[name]
         except KeyError:
@@ -56,12 +56,6 @@ class OrderPool(object):
             self.packs[name] = pack
 
         return pack
-
-    def pack(self, code):
-        try:
-            return self.packs[code]
-        except KeyError:
-            return None
 
 
 class OrderPack(object):

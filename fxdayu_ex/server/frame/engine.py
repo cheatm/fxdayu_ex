@@ -47,10 +47,10 @@ class Engine(Consumer):
         return self.handlers.pop(key, None)
 
     def handle(self, event):
-        try:
+        # try:
             self.handlers[event.type](event)
-        except Exception as e:
-            self.handle_exception(e)
+        # except Exception as e:
+        #     self.handle_exception(e)
 
     def put(self, event):
         self.queue.put(event)

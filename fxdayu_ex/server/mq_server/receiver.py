@@ -7,9 +7,9 @@ import json
 class TickListener(MQHeaderListener):
 
     def __init__(self, queue, connection, exchange):
+        super(TickListener, self).__init__(connection, exchange)
         self.queue = queue
         self.add("all", {})
-        super(TickListener, self).__init__(connection, exchange)
 
     def handle(self, tick):
         try:

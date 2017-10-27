@@ -78,10 +78,10 @@ class CashSubExceed(Exception):
 class Order(Structure, JSONAdaptor):
 
     __slots__ = ("accountID", "orderID", "code", "qty", "cumQty", "price", "orderType", "bsType", "orderStatus",
-                 "frzAmt", "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime")
+                 "frzAmt", "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime", "info")
 
     DIRECT = ("accountID", "orderID", "code", "qty", "cumQty", "price", "frzAmt",
-              "frzFee", "cumAmt", "cumFee", "canceled", "time", "cnfmTime")
+              "frzFee", "cumAmt", "cumFee", "canceled", "time", "cnfmTime", "info")
 
     ENUMS = (("orderType", OrderType), ("bsType", BSType), ("orderStatus", OrderStatus), ("reason", CanceledReason))
 
@@ -105,7 +105,8 @@ class Order(Structure, JSONAdaptor):
                  canceled=EMPTY_INT,
                  reason=CanceledReason.NONE,
                  time=EMPTY,
-                 cnfmTime=EMPTY):
+                 cnfmTime=EMPTY,
+                 info=EMPTY):
         self.accountID = accountID
         self.orderID = orderID
         self.code = code
@@ -123,6 +124,7 @@ class Order(Structure, JSONAdaptor):
         self.orderStatus = orderStatus
         self.time = time
         self.cnfmTime = cnfmTime
+        self.info = info
 
     @property
     def unfilled(self):

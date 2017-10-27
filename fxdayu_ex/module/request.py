@@ -1,8 +1,14 @@
 # encoding:utf-8
 from fxdayu_ex.module.empty import *
+from fxdayu_ex.module.storage import Structure
+from fxdayu_ex.utils.json_adapt import JSONAdaptor
 
 
-class ReqOrder:
+class ReqOrder(Structure, JSONAdaptor):
+
+    __slots__ = ("accountID", "code", "qty", "price", "time", "info", "orderType", "bsType")
+    DIRECT = ("accountID", "code", "qty", "price", "time", "info")
+    ENUMS = ("orderType", "bsType")
 
     def __init__(self,
                  accountID=EMPTY_STR,
@@ -12,7 +18,7 @@ class ReqOrder:
                  orderType=EMPTY,
                  bsType=EMPTY,
                  time=EMPTY,
-                 info=EMPTY_STR):
+                 info=EMPTY):
         self.accountID = accountID
         self.code = code
         self.qty = qty
@@ -30,7 +36,10 @@ class QryOrder:
         self.orderID = orderID
 
 
-class CancelOrder:
+class CancelOrder(Structure, JSONAdaptor):
+
+    __slots__ = ("accountID", "orderID")
+    DIRECT = __slots__
 
     def __init__(self, accountID=EMPTY_STR, orderID=EMPTY_STR):
         self.accountID = accountID
@@ -57,7 +66,10 @@ class QryPosition:
         self.code = code
 
 
-class Snapshot:
+class Snapshot(Structure, JSONAdaptor):
+
+    __slots__ = ("accountID",)
+    DIRECT = __slots__
 
     def __init__(self, accountID=EMPTY_STR):
         self.accountID = accountID

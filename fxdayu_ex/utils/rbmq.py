@@ -226,6 +226,7 @@ def to_json(body):
 local = "amqp://xinge:fxdayu@localhost:5672"
 remote = "amqp://192.168.0.104:10009"
 
+
 if __name__ == '__main__':
     mqrl = MQRequestListener(get_con(local), exchange='ClientRequest')
     # mqrl.add("ReqOrder", to_json)

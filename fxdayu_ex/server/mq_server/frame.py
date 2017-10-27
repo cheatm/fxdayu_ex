@@ -3,62 +3,70 @@ from fxdayu_ex.module.request import ReqOrder, CancelOrder
 from fxdayu_ex.utils.rbmq import MQHeaderListener
 from fxdayu_ex.module.enums import OrderType, BSType
 from fxdayu_ex.server.mq_server.transmission import load_req
-import json
+from fxdayu_ex.server.mq_server.publisher import ClientResponse, ClientHeaderPublisher
+from fxdayu_ex.server.mq_server.receiver import ClientRequestListener, TickListener
+from pika import TornadoConnection
 
 
-class MQFrameWork(FrameWork):
+class MQFrame(object):
 
-    def __init__(self, connection, exchange, broker, orderIDs, tradeIDs):
+    def __init__(self, framework, connection):
+        self.framework = framework
         self.connection = connection
-        self.listener = MQHeaderListener(self.connection, "Tick")
-        self.listener.handle = self.put_tick
-        self.listener.add("all", {})
-        super(MQFrameWork, self).__init__(exchange, broker, orderIDs, tradeIDs)
+        self.ticks = TickListener(self.framework.queue, connection, "Tick")
+        self.ticks.add("all", {})
+        self.request = ClientRequestListener(self.framework.queue, self.connection, "ClientRequest")
+        self.response = ClientResponse(publisher=ClientHeaderPublisher(self.connection, exchange="ClientResponse"))
+        self.framework.set_response(self.response.queue)
+        self.connection.add_on_open_callback(self.on_connection_open)
 
     def start(self):
-        super(MQFrameWork, self).start()
+        self.framework.start()
         self.connection.ioloop.start()
 
-    def listen(self, code):
-        receiver = self.listener.receivers.get(code, None)
-        print("listen", code)
-        if receiver is None:
-            self.listener.add(code, {'code': code})
-        else:
-            if not receiver.listening:
-                receiver.listen(self.listener.channel, self.put_tick)
+    def on_connection_open(self, connection):
+        pass
 
-    def put_tick(self, tick):
-        try:
-            tick = json.loads(tick)
-        except Exception as e:
-            pass
-        self.put(TickEvent(tick))
 
-    def put_req_order(self, req):
-        try:
-            req = load_req(json.loads(req))
-        except Exception as e:
-            self._load_req_fail(req, e)
-        else:
-            self.put(ReqEvent(req))
+class RealTimeFramework(FrameWork):
 
-    def _load_req_fail(self, req, e):
-        print(req, e)
+    def __init__(self, exchange, broker, orderIDs, tradeIDs):
+        super(RealTimeFramework, self).__init__(exchange, broker, orderIDs, tradeIDs)
+        self.response_queue = None
+        self.memory_queue = None
+        self.logger = None
 
+    def set_response(self, queue):
+        self.response_queue = queue
+
+    def set_memory(self, queue):
+        self.memory_queue = queue
+
+    def set_logger(self, logger):
+        self.logger = logger
+
+
+# def simulation():
+#     accountID = 103
+#     frame = generate(accountID)
+#     from fxdayu_ex.module.enums import BSType, OrderType
+#
+#     req = ReqOrder(accountID, "000001.XSHE", 1000, price=111000, orderType=OrderType.LIMIT, bsType=BSType.BUY)
+#     frame.put(ReqEvent(req))
+#     frame.start()
+#
+#
 
 def simulation():
-    accountID = 103
-    frame = generate(accountID)
-    from fxdayu_ex.module.enums import BSType, OrderType
+    from fxdayu_ex.utils.rbmq import get_con
 
-    req = ReqOrder(accountID, "000001.XSHE", 1000, price=111000, orderType=OrderType.LIMIT, bsType=BSType.BUY)
-    frame.put(ReqEvent(req))
-    frame.start()
+    accountID = 103
+    framework = generate(accountID)
+    mqFrame = MQFrame(framework, connection=get_con("amqp://xinge:fxdayu@localhost:5672"))
+    mqFrame.start()
 
 
 def generate(accountID):
-    from fxdayu_ex.utils.rbmq import get_con, remote
     from fxdayu_ex.module.storage import Cash, Position
     from fxdayu_ex.server.frame.exchange import Exchange, OrderPool, Transactor
     from fxdayu_ex.server.frame.broker import Broker, Account
@@ -72,9 +80,12 @@ def generate(accountID):
 
     account = Account(accountID, Cash(accountID, 100000000000), {}, {})
     broker = Broker({accountID: account})
-    frame = MQFrameWork(get_con(remote), Exchange(pool, transactor), broker, orderIDs, tradeIDs)
-    return frame
+    framework = RealTimeFramework(Exchange(pool, transactor), broker, orderIDs, tradeIDs)
+    return framework
 
 
 if __name__ == '__main__':
+    from fxdayu_ex.utils.logger import dict_initiate
+
+    dict_initiate("/home/cam/fxdayu_ex")
     simulation()
