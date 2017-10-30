@@ -271,3 +271,6 @@ class PositionUnfreezeExceed(Exception):
 
 class PositionSubExceed(PositionUnfreezeExceed): pass
 
+
+if __name__ == '__main__':
+    print(Order().to_json())

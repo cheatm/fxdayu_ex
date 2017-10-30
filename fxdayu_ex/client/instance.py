@@ -12,7 +12,6 @@ class ClientInstance(Consumer, AbstractAccount):
     def __init__(self, accountID):
         super(ClientInstance, self).__init__(Queue(), 5)
         self.account = Account(accountID, None, {}, {})
-        self.account.cancel_order()
         self.handlers = {
             Order.__name__: self.send_order,
             Trade.__name__: self.on_trade,

@@ -13,12 +13,14 @@ class JSONAdaptor:
     def to_dict(self):
         return dict(
             chain(((attr, getattr(self, attr)) for attr in self.DIRECT),
-                  ((name, getattr(self, name).value) for name, en in self.ENUMS))
+                  ((name, getattr(self, name).value) for name, en in self.ENUMS)),
+            cls=self.__class__.__name__
         )
 
     @classmethod
     def from_dict(cls, dct):
         dct = dct.copy()
+        dct.pop("cls")
         for name, _type in cls.ENUMS:
             dct[name] = _type(dct[name])
 
