@@ -18,10 +18,10 @@ CSO = "cancel sell order"
 CBO = "cancel buy order"
 
 
-class FrameWork(Engine):
+class Core(Engine):
 
     def __init__(self, exchange, broker, orderIDs, tradeIDs):
-        super(FrameWork, self).__init__()
+        super(Core, self).__init__()
         self.exchange = exchange
         self.broker = broker
         self.orderpool = exchange.pool
@@ -52,7 +52,6 @@ class FrameWork(Engine):
             ReqEvent.type: self.handle_req,
             TickEvent.type: self.handle_tick
         }
-
 
     def handle_tick(self, event):
         self.on_tick(event.tick)
@@ -174,7 +173,7 @@ class FrameWork(Engine):
             self.buy_order_success(order, account.cash)
 
     def buy_order_success(self, order, cash):
-        self.on_order(order)
+        self.order_success(order)
 
     def on_sell_order(self, account, order):
         try:
@@ -189,9 +188,9 @@ class FrameWork(Engine):
             self.sell_order_success(order, account.get_position(order.code))
 
     def sell_order_success(self, order, position):
-        self.on_order(order)
+        self.order_success(order)
 
-    def on_order(self, order):
+    def order_success(self, order):
         if order.orderStatus.value == OrderStatus.UNFILLED.value:
             self.orderpool.put(order)
         return order
@@ -262,7 +261,7 @@ def generate(accountID):
                       {"300667.XSHE": Position(accountID, "300667.XSHE", 3000, 3000)},
                       {})
     broker = Broker({accountID: account})
-    frame = FrameWork(Exchange(pool, transactor), broker, orderIDs, tradeIDs)
+    frame = Core(Exchange(pool, transactor), broker, orderIDs, tradeIDs)
     return frame
 
 

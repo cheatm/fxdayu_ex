@@ -223,7 +223,35 @@ class Position(Structure, JSONAdaptor):
         self.origin = self.available
 
 
+class SnapShot(Structure, JSONAdaptor):
+
+    def __init__(self, accountID, cash, orders, positions):
+        self.accountID = accountID
+        self.cash = cash
+        self.orders = orders
+        self.positions = positions
+
+    def to_dict(self):
+        return {
+            "accountID": self.accountID,
+            "cash": self.cash.to_dict(),
+            "orders": {_id: order.to_dict() for _id, order in self.orders.items()},
+            "positions": {_id: position.to_dict() for _id, position in self.positions.items()}
+        }
+
+    @classmethod
+    def from_dict(cls, dct):
+        return cls(
+            dct["accountID"],
+            Cash.from_dict(dct['cash']),
+            {_id: Order.from_dict(order) for _id, order in dct["orders"].items()},
+            {_id: Position.from_dict(position) for _id, position in dct["positions"].items()}
+        )
+
+
+
 class PositionFreezeExceed(Exception):
+
 
     def __init__(self, accountID, code, available, qty):
         self.accountID = accountID

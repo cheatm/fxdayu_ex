@@ -7,9 +7,8 @@ from fxdayu_ex.module.account import AbstractAccount
 
 class Broker(object):
 
-    def __init__(self, accounts=None, pool=None):
+    def __init__(self, accounts=None):
         self.accounts = accounts if accounts is not None else dict()
-        self.pool = pool
 
     # Need to be re write !!!
     def account(self, accountID):

@@ -10,6 +10,7 @@ class ReqOrder(Structure, JSONAdaptor):
     DIRECT = ("accountID", "code", "qty", "price", "time", "info")
     ENUMS = ("orderType", "bsType")
 
+
     def __init__(self,
                  accountID=EMPTY_STR,
                  code=EMPTY_STR,
@@ -66,7 +67,7 @@ class QryPosition:
         self.code = code
 
 
-class Snapshot(Structure, JSONAdaptor):
+class ReqSnapshot(Structure, JSONAdaptor):
 
     __slots__ = ("accountID",)
     DIRECT = __slots__
@@ -75,4 +76,10 @@ class Snapshot(Structure, JSONAdaptor):
         self.accountID = accountID
 
 
-__all__ = ["ReqOrder", "CancelOrder", "QryOrder", "QryCash", "QryPosition", "QryTrade", "Snapshot"]
+CLASSES = dict(
+    map(lambda cls: (cls.__name__, cls),
+        [ReqOrder, CancelOrder, QryOrder, QryCash, QryPosition, QryTrade, ReqSnapshot])
+)
+
+
+__all__ = ["ReqOrder", "CancelOrder", "QryOrder", "QryCash", "QryPosition", "QryTrade", "ReqSnapshot", "CLASSES"]

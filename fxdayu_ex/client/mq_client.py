@@ -1,57 +1,37 @@
-from fxdayu_ex.utils.rbmq import MQExchangeConstructor
-import json
-from pika.channel import Channel
+# encoding:utf-8
+from fxdayu_ex.server.frame.engine import Consumer
+from fxdayu_ex.server.mq_server.structures import get_req_ex, client_resp_queue
+from fxdayu_ex.utils.rbmq.objects import RabbitStructure
+from fxdayu_ex.utils.rbmq.con import consumer_ack, get_con
+from fxdayu_ex.utils.logger import dict_initiate
+import logging
+from queue import Queue
 
 
-class MQClientInstance(MQExchangeConstructor):
+REQUESTS = "ClientRequest"
+RESPONSE = "ClientResponse"
 
-    def __init__(self, connection, listen, publish, accountID):
+
+class MQClientInstance(Consumer):
+
+    def __init__(self, accountID, connection):
+        super(MQClientInstance, self).__init__(Queue(), 5)
         self.accountID = accountID
-        self.publish = publish
-        super(MQClientInstance, self).__init__(connection, listen)
-        self.handlers = {}
+        self.connection = connection
+        self.exchange = get_req_ex()
+        self.rqueue = client_resp_queue(self.accountID, consumer_ack(self.on_resp))
+        self.structure = RabbitStructure(
+            self.connection,
+            {REQUESTS: self.exchange},
+            {self.accountID: self.rqueue}
+        )
 
-    def add(self, name, handler):
-        self.handlers[name] = handler
+    def on_resp(self, resp):
+        logging.debug(resp)
 
-    def on_connection_open(self, connection):
-        self.channel = connection.channel(self.on_channel_open)
 
-    def on_channel_open(self, channel):
-        self.channel = channel
-        self.connect_req()
-        self.connect_resp()
-
-    def connect_req(self):
-        self.channel.exchange_declare(self.on_publish_declare, self.publish)
-
-    def on_publish_declare(self, *args):
-        pass
-
-    def connect_resp(self):
-        self.channel.exchange_declare(self.on_consume_declare, self.exchange, "headers")
-
-    def on_consume_declare(self, *args):
-        self.channel.queue_declare(self.on_queue_open, self.accountID)
-
-    def on_queue_open(self, method):
-        self.channel.queue_bind(None, self.accountID, self.exchange, "", arguments={"accountID": self.accountID})
-
-    def on_queue_bind(self, method):
-        self.channel.basic_consume(self.consumer_callback, self.accountID, consumer_tag=self.accountID)
-
-    def consumer_callback(self, channel, method, properties, body):
-        self.on_exchange_callback(body)
-        channel.basic_ack(delivery_tag=method.delivery_tag)
-
-    def on_exchange_callback(self, message):
-        try:
-            objects = json.loads(message)
-        except Exception as e:
-            self.load_message_error(message, e)
-        else:
-            for name, js in objects.items():
-                self.handlers[name](js)
-        
-    def load_message_error(self, message, e):
-        pass
+if __name__ == '__main__':
+    dict_initiate()
+    con = get_con("amqp://xinge:fxdayu@localhost:5672")
+    MQClientInstance(134, con)
+    con.ioloop.start()

@@ -41,7 +41,7 @@ def dict_initiate(directory=None):
         "handlers": HANDLERS,
         "root": {
             "handlers": list(HANDLERS.keys()),
-            "level": "WARNING",
+            "level": "DEBUG",
             "formatter": "default"
         }
     }

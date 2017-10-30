@@ -1,6 +1,4 @@
-import pika
-from pika.channel import Channel
-from fxdayu_ex.utils.rbmq import get_con
+import logging
 
 
 class RabbitObject(object):
@@ -31,7 +29,7 @@ class RabbitExchange(object):
         self.arguments = arguments
 
     def callback(self, frame):
-        print(frame)
+        logging.debug("MQ Exchange declare: %s", str(frame))
 
     def on_channel_open(self, channel):
         self.channel = channel
@@ -99,7 +97,7 @@ class RabbitQueue(object):
         return bind
 
     def on_queue_open(self, method):
-        print(method)
+        logging.debug("Queue open: %s", str(method))
         self.queue = method.method.queue
         if self._consumer is not None:
             self.consume(self._consumer)
@@ -176,7 +174,7 @@ class BindQueue(object):
         self.arguments = None
 
     def callback(self, method):
-        print(method)
+        logging.debug("Queue bind: %s", str(method))
 
 
 class RabbitStructure(object):
@@ -189,28 +187,32 @@ class RabbitStructure(object):
         connection.add_on_open_callback(self.on_connection_open)
 
     def on_connection_open(self, connection):
+        logging.debug("MQ connection open %s", str(connection))
         self.channel = self.connection.channel(self.on_channel_open)
 
     def on_channel_open(self, channel):
+        logging.debug("MQ channel open %s", str(channel))
         self.channel = channel
+
         for name, rbex in self.exchanges.items():
             rbex.on_channel_open(self.channel)
         for name, rbq in self.queues.items():
+            logging.debug("declare queue %s", name)
             rbq.on_channel_open(self.channel)
 
 
 def callback(*args):
     print(*args, sep="\n")
 
-
-if __name__ == '__main__':
-    connection = get_con("amqp://xinge:fxdayu@localhost:5672")
-
-    structure = RabbitStructure(
-        connection,
-        {"Test": RabbitExchange("Test", "direct")},
-        {"New": RabbitQueue("New", auto_delete=True,
-                            consumer=RabbitConsumer(callback, no_ack=True),
-                            bind=BindQueue(routing_key="New"))}
-    )
-    connection.ioloop.start()
+#
+# if __name__ == '__main__':
+#     connection = get_con("amqp://xinge:fxdayu@localhost:5672")
+#
+#     structure = RabbitStructure(
+#         connection,
+#         {"Test": RabbitExchange("Test", "direct")},
+#         {"New": RabbitQueue("New", auto_delete=True,
+#                             consumer=RabbitConsumer(callback, no_ack=True),
+#                             bind=BindQueue(exchange="Test", routing_key="New"))}
+#     )
+#     connection.ioloop.start()

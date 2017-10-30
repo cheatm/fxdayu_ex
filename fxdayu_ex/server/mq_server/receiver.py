@@ -1,51 +1,32 @@
-from fxdayu_ex.utils.rbmq import MQHeaderListener, MQRequestListener
 from fxdayu_ex.server.frame.engine import TickEvent, ReqEvent
-from fxdayu_ex.server.mq_server.transmission import load_req, load_cancel
+from fxdayu_ex.module.request import CLASSES
+import logging
 import json
 
 
-class TickListener(MQHeaderListener):
-
-    def __init__(self, queue, connection, exchange):
-        super(TickListener, self).__init__(connection, exchange)
+class TickListener(object):
+    def __init__(self, queue):
         self.queue = queue
-        self.add("all", {})
 
-    def handle(self, tick):
+    def on_tick(self, tick):
         try:
             tick = json.loads(tick)
         except Exception as e:
-            self.tick_load_exception(tick, e)
+            logging.warning("Load tick error: %s", tick)
         else:
             self.queue.put(TickEvent(tick))
 
-    def tick_load_exception(self, tick, e):
-        pass
 
+class ClientRequestListener(object):
 
-class ClientRequestListener(MQRequestListener):
-
-    def __init__(self, queue, connection, exchange):
+    def __init__(self, queue):
         self.queue = queue
-        super(ClientRequestListener, self).__init__(connection, exchange)
-        self.add("ReqOrder", self.handle_req_order)
-        self.add("CancelOrder", self.handle_cancel_order)
 
-    def handle_req_order(self, req):
+    def on_req(self, req):
         try:
-            req = load_req(json.loads(req))
+            req = json.loads(req)
+            obj = CLASSES[req["type"]].from_dict(req['data'])
         except Exception as e:
-            self._load_req_fail(req, e)
+            logging.warning("Load req error: %s", req)
         else:
-            self.queue.put(ReqEvent(req))
-
-    def _load_req_fail(self, req, e):
-        pass
-
-    def handle_cancel_order(self, cancel):
-        try:
-            cancel = load_cancel(json.loads(cancel))
-        except Exception as e:
-            self._load_req_fail(cancel , e)
-        else:
-            self.queue.put(ReqEvent(cancel))
+            self.queue.put(ReqEvent(obj))
