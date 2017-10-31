@@ -2,7 +2,7 @@
 from pika import TornadoConnection
 from fxdayu_ex.utils.rbmq.con import get_con, consumer_ack, consumer_no_ack
 from fxdayu_ex.utils.rbmq.objects import RabbitStructure
-from fxdayu_ex.server.mq_server.receiver import TickListener, ClientRequestListener
+from fxdayu_ex.server.mq_server.receiver import MQReceiver
 from fxdayu_ex.server.mq_server.publisher import ClientRespPublisher
 from fxdayu_ex.server.mq_server.structures import REQUEST, RESPONSE, TICK, ALL, \
     get_req_ex, get_tick_ex, get_resp_ex, client_req_queue, all_tick_queue
@@ -22,8 +22,7 @@ class Constructor(object):
         self.mqex = self.init_ex()
         self.resp = ClientRespPublisher(self.mqex[RESPONSE])
         self.core = ExCore.from_test(self.resp.queue)
-        self.tick = TickListener(self.core.queue)
-        self.req = ClientRequestListener(self.core.queue)
+        self.receiver = MQReceiver(self.core.queue)
 
         self.mqq = self.init_queue()
 
@@ -35,8 +34,8 @@ class Constructor(object):
 
     def init_queue(self):
         return {
-            ALL: all_tick_queue(consumer_no_ack(self.tick.on_tick)),
-            REQUEST: client_req_queue(consumer_ack(self.req.on_req))
+            ALL: all_tick_queue(consumer_no_ack(self.receiver.on_tick)),
+            REQUEST: client_req_queue(consumer_ack(self.receiver.on_req))
         }
 
     def init_ex(self):

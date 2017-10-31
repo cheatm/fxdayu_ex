@@ -4,7 +4,7 @@ import logging
 import json
 
 
-class TickListener(object):
+class MQReceiver(object):
     def __init__(self, queue):
         self.queue = queue
 
@@ -12,21 +12,15 @@ class TickListener(object):
         try:
             tick = json.loads(tick)
         except Exception as e:
-            logging.warning("Load tick error: %s", tick)
+            logging.warning("Load tick %s fail: %s", tick, e)
         else:
             self.queue.put(TickEvent(tick))
-
-
-class ClientRequestListener(object):
-
-    def __init__(self, queue):
-        self.queue = queue
 
     def on_req(self, req):
         try:
             req = json.loads(req)
-            obj = CLASSES[req["type"]].from_dict(req['data'])
+            obj = CLASSES[req["cls"]].from_dict(req)
         except Exception as e:
-            logging.warning("Load req error: %s", req)
+            logging.warning("Load req %s fail: %s", req, e)
         else:
             self.queue.put(ReqEvent(obj))

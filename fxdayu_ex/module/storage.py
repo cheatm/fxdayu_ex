@@ -106,7 +106,7 @@ class Order(Structure, JSONAdaptor):
                  reason=CanceledReason.NONE,
                  time=EMPTY,
                  cnfmTime=EMPTY,
-                 info=EMPTY):
+                 info=EMPTY_STR):
         self.accountID = accountID
         self.orderID = orderID
         self.code = code
