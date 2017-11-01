@@ -14,8 +14,11 @@ class Structure:
             ', '.join(["{}={}".format(attr, self.__getattribute__(attr)) for attr in self.__slots__])
         )
 
+    def dict(self):
+        return {attr: self.__getattribute__(attr) for attr in self.__slots__}
 
-class Cash(Structure, JSONAdaptor):
+
+class Cash(Structure):
 
     __slots__ = ("accountID", "available", "frozen")
 
@@ -75,17 +78,17 @@ class CashSubExceed(Exception):
         self.sub = sub
 
 
-class Order(Structure, JSONAdaptor):
+class Order(Structure):
 
     __slots__ = ("accountID", "orderID", "code", "qty", "cumQty", "price", "orderType", "bsType", "orderStatus",
                  "frzAmt", "frzFee", "cumAmt", "cumFee",  "canceled", "reason", "time", "cnfmTime", "info")
 
-    DIRECT = ("accountID", "orderID", "code", "qty", "cumQty", "price", "frzAmt",
-              "frzFee", "cumAmt", "cumFee", "canceled", "time", "cnfmTime", "info")
-
-    ENUMS = (("orderType", OrderType), ("bsType", BSType), ("orderStatus", OrderStatus), ("reason", CanceledReason))
-
-    FORMAT = "Y-%m-%d %H:%M:%S"
+    # DIRECT = ("accountID", "orderID", "code", "qty", "cumQty", "price", "frzAmt",
+    #           "frzFee", "cumAmt", "cumFee", "canceled", "time", "cnfmTime", "info")
+    #
+    # ENUMS = (("orderType", OrderType), ("bsType", BSType), ("orderStatus", OrderStatus), ("reason", CanceledReason))
+    #
+    # FORMAT = "Y-%m-%d %H:%M:%S"
 
 
     def __init__(self,
@@ -131,7 +134,7 @@ class Order(Structure, JSONAdaptor):
         return self.qty - self.cumQty - self.canceled
 
 
-class Trade(Structure, JSONAdaptor):
+class Trade(Structure):
 
     __slots__ = ["accountID", "orderID", "tradeID", "code", "qty", "price", "orderType", "bsType", "fee",
                  "orderStatus", "time"]
@@ -169,7 +172,7 @@ class Trade(Structure, JSONAdaptor):
         return self.accountID == other.accountID
 
 
-class Position(Structure, JSONAdaptor):
+class Position(Structure):
 
     __slots__ = ["accountID", "code", "origin", "available", "frozen", "today", "todaySell"]
 
@@ -270,7 +273,3 @@ class PositionUnfreezeExceed(Exception):
 
 
 class PositionSubExceed(PositionUnfreezeExceed): pass
-
-
-if __name__ == '__main__':
-    print(Order().to_json())

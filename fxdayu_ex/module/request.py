@@ -1,6 +1,6 @@
 # encoding:utf-8
 from fxdayu_ex.module.empty import *
-from fxdayu_ex.module.storage import Structure
+from fxdayu_ex.module.instance import Structure
 from fxdayu_ex.utils.json_adapt import JSONAdaptor
 
 

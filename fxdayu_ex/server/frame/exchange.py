@@ -1,5 +1,5 @@
 # encoding:utf-8
-from fxdayu_ex.module.storage import Trade, Order
+from fxdayu_ex.module.instance import Trade, Order
 from fxdayu_ex.module.enums import BSType, OrderType, OrderStatus
 from datetime import datetime
 from queue import deque

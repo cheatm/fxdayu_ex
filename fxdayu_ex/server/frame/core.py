@@ -3,7 +3,7 @@ from fxdayu_ex.server.frame.exchange import Exchange, OrderPool, Transactor
 from fxdayu_ex.server.frame.exceptions import *
 from fxdayu_ex.server.frame.engine import Engine, TickEvent, ReqEvent, RespEvent
 from fxdayu_ex.module.enums import OrderStatus, BSType, OrderType, CanceledReason
-from fxdayu_ex.module.storage import Order, Trade, Cash, Position
+from fxdayu_ex.module.instance import Order, Trade, Cash, Position
 from fxdayu_ex.module.request import ReqOrder, CancelOrder
 import logging
 from datetime import datetime

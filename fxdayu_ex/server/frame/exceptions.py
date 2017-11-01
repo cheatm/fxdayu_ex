@@ -1,6 +1,6 @@
 # encoding:utf-8
 
-from fxdayu_ex.module.storage import CashSubExceed, CashUnfreezeExceed, CashFreezeExceed, \
+from fxdayu_ex.module.instance import CashSubExceed, CashUnfreezeExceed, CashFreezeExceed, \
     PositionUnfreezeExceed, PositionSubExceed, PositionFreezeExceed
 from fxdayu_ex.server.frame.broker import OrderTransactExceed, OrderNotFound, TradeNotFound, \
     AccountNotFound, PositionNotFound

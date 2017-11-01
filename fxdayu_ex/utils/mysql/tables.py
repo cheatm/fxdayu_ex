@@ -15,8 +15,8 @@ class CashTable(InstanceTable):
         super(CashTable, self).__init__(
             "cash",
             ("accountID", "INT UNIQUE NOT NULL"),
-            ("available", "INT DEFAULT 0"),
-            ("frozen", "INT DEFAULT 0"),
+            ("available", "BIGINT DEFAULT 0"),
+            ("frozen", "BIGINT DEFAULT 0"),
             index=("Index accountID_1 (accountID)",)
         )
 
@@ -40,15 +40,15 @@ class OrderTable(InstanceTable):
             ("qty", "INT DEFAULT 0"),
             ("cumQty", "INT DEFAULT 0"),
             ("price", "INT DEFAULT 0"),
-            ("orderType", "INT"),
-            ("bsType", "INT"),
-            ("orderStatus", "INT"),
-            ("frzAmt", "INT DEFAULT 0"),
+            ("orderType", "TINYINT"),
+            ("bsType", "TINYINT"),
+            ("orderStatus", "TINYINT"),
+            ("frzAmt", "BIGINT DEFAULT 0"),
             ("frzFee", "INT DEFAULT 0"),
             ("cumAmt", "INT DEFAULT 0"),
             ("cumFee", "INT DEFAULT 0"),
             ("canceled", "INT DEFAULT 0"),
-            ("reason", "INT"),
+            ("reason", "TINYINT"),
             ("time", "DATETIME(6)"),
             ("cnfmTime", "DATETIME(6)"),
             ("info", "VARCHAR(1023)"),
@@ -80,10 +80,10 @@ class TradeTable(InstanceTable):
             ("tradeID", "INT UNIQUE NOT NULL"),
             ("code", "CHAR(255)"),
             ("qty", "INT DEFAULT 0"),
-            ("orderType", "INT"),
-            ("bsType", "INT"),
+            ("orderType", "TINYINT"),
+            ("bsType", "TINYINT"),
             ("fee", "INT DEFAULT 0"),
-            ("orderStatus", "INT"),
+            ("orderStatus", "TINYINT"),
             ("time", "DATETIME(6)"),
         )
 
@@ -115,7 +115,7 @@ class PositionTable(InstanceTable):
 
 if __name__ == '__main__':
     from fxdayu_ex.utils.mysql.parser import MysqlURLParser
-    from fxdayu_ex.module.storage import Order
+    from fxdayu_ex.module.instance import Order
     from datetime import datetime
 
     # con = MysqlURLParser("jdbc:mysql://localhost:3306/broker?user=root&password=fxdayu").connect()

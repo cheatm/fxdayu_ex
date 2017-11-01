@@ -1,6 +1,6 @@
 # encoding:utf-8
 from fxdayu_ex.module.enums import OrderStatus, BSType, CanceledReason, OrderType
-from fxdayu_ex.module.storage import Order, Trade, Cash, Position, CashUnfreezeExceed, CashSubExceed, PositionSubExceed
+from fxdayu_ex.module.instance import Order, Trade, Cash, Position, CashUnfreezeExceed, CashSubExceed, PositionSubExceed
 from fxdayu_ex.module.request import *
 from fxdayu_ex.module.account import AbstractAccount
 

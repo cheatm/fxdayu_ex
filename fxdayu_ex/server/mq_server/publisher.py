@@ -11,9 +11,8 @@ class ClientRespPublisher(Consumer):
         super(ClientRespPublisher, self).__init__(Queue(), 5)
 
     def handle(self, quest):
-        resp = quest.to_dict()
         try:
-            resp = json.dumps({"type": quest.__class__.__name__, "data": resp})
+            resp = json.dumps(quest.to_dict())
         except:
             pass
         else:

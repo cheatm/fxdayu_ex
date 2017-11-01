@@ -2,8 +2,8 @@ from fxdayu_ex.server.frame.engine import Consumer
 from fxdayu_ex.module.account import AbstractAccount
 from fxdayu_ex.server.frame.broker import Account
 from fxdayu_ex.module.request import CancelOrder, ReqOrder, ReqSnapshot
-from fxdayu_ex.module.storage import Order, Trade, Position, Cash, SnapShot
-from fxdayu_ex.module.storage import BSType
+from fxdayu_ex.module.instance import Order, Trade, Position, Cash, SnapShot
+from fxdayu_ex.module.instance import BSType
 from queue import Queue
 
 
