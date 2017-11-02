@@ -36,6 +36,18 @@ class Exchange(object):
             pack.wait(order)
         pack.recycle()
 
+    @classmethod
+    def quick(cls, rule='year', buy_rate="5/10000", sell_rate="5/10000"):
+        from fxdayu_ex.utils.id_generator import get_timer_id
+        from fxdayu_ex.utils.cal import Rate
+
+        return Exchange(
+            OrderPool(),
+            Transactor(get_timer_id(rule),
+                       Rate.from_str(buy_rate),
+                       Rate.from_str(sell_rate))
+        )
+
 
 class OrderPool(object):
 

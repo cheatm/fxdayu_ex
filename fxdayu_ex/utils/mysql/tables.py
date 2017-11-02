@@ -3,10 +3,8 @@ from fxdayu_ex.utils.mysql.objects import MysqlTable
 
 class InstanceTable(MysqlTable):
 
-    def insert(self, instance):
-        dct = instance.to_dict()
-        del dct['cls']
-        return MysqlTable.insert(self, **dct)
+    def insert(self, record):
+        return MysqlTable.insert(self, **record.to_dict())
 
 
 class CashTable(InstanceTable):
@@ -21,9 +19,9 @@ class CashTable(InstanceTable):
         )
 
     def update(self, cash):
-        MysqlTable.update(
+        return MysqlTable.update(
             self,
-            where="accountID==%s" % cash.accountID,
+            where="accountID=%s" % cash.accountID,
             available=cash.available,
             frozen=cash.frozen
         )
@@ -59,14 +57,14 @@ class OrderTable(InstanceTable):
     def update(self, order):
         return MysqlTable.update(
             self,
-            where="orderID==%s" % order.orderID,
-            orderStatus=order.orderStatus,
+            where="orderID=%s" % order.orderID,
+            orderStatus=order.orderStatus.value,
             cumQty=order.cumQty,
             frzAmt=order.frzAmt,
             frzFee=order.frzFee,
             canceled=order.canceled,
-            reason=order.reason,
-            cnfmTime=order.cnfmTime
+            reason=order.reason.value,
+            cnfmTime="'%s'" % order.cnfmTime
         )
 
 
@@ -80,6 +78,7 @@ class TradeTable(InstanceTable):
             ("tradeID", "INT UNIQUE NOT NULL"),
             ("code", "CHAR(255)"),
             ("qty", "INT DEFAULT 0"),
+            ("price", "INT DEFAULT 0"),
             ("orderType", "TINYINT"),
             ("bsType", "TINYINT"),
             ("fee", "INT DEFAULT 0"),
@@ -87,8 +86,12 @@ class TradeTable(InstanceTable):
             ("time", "DATETIME(6)"),
         )
 
+    def update(self, record):
+        return self.insert(record)
+
 
 class PositionTable(InstanceTable):
+
     def __init__(self):
         super(PositionTable, self).__init__(
             'positions',
@@ -105,11 +108,23 @@ class PositionTable(InstanceTable):
     def update(self, position):
         return MysqlTable.update(
             self,
-            where=("accountID==%s" % position.accountID, "code==%s" % position.code),
+            where=("accountID=%s" % position.accountID, "code='%s'" % position.code),
             available=position.available,
             frozen=position.frozen,
             today=position.today,
             todaySell=position.todaySell
+        )
+
+
+class AccountTable(MysqlTable):
+
+    def __init__(self):
+        super(AccountTable, self).__init__(
+            "accounts",
+            ("accountID", "INT AUTO_INCREMENT"),
+            ("info", "VARCHAR(1023)"),
+            ("active", "TINYINT DEFAULT 0"),
+            other=(("PRIMARY KEY (`accountID`)"),)
         )
 
 
@@ -118,13 +133,7 @@ if __name__ == '__main__':
     from fxdayu_ex.module.instance import Order
     from datetime import datetime
 
-    # con = MysqlURLParser("jdbc:mysql://localhost:3306/broker?user=root&password=fxdayu").connect()
 
-    # cursor = con.cursor()
-    # order = Order(123, 4245, "000001.XSHE", 1000, price=1000000,
-    #               time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    #               cnfmTime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    # dct = order.to_dict()
-    # dct.pop("cls")
-    # cursor.execute(OrderTable().insert(**dct))
-    # con.commit()
+    # print(AccountTable().create)
+    con = MysqlURLParser("jdbc:mysql://localhost:3306/broker?user=root&password=fxdayu").connect()
+    con.cursor().execute(AccountTable().create)

@@ -116,15 +116,15 @@ class Order(Structure):
         self.qty = qty
         self.cumQty = cumQty
         self.price = price
-        self.orderType = orderType
-        self.bsType = bsType
+        self.orderType = orderType if isinstance(orderType, OrderType) else OrderType(orderType)
+        self.bsType = bsType if isinstance(bsType, BSType) else BSType(bsType)
         self.frzAmt = frzAmt
         self.frzFee = frzFee
         self.cumAmt = cumAmt
         self.cumFee = cumFee
         self.canceled = canceled
-        self.reason = reason
-        self.orderStatus = orderStatus
+        self.reason = reason if isinstance(reason, CanceledReason) else CanceledReason(reason)
+        self.orderStatus = orderStatus if isinstance(orderStatus, OrderStatus) else OrderStatus(bsType)
         self.time = time
         self.cnfmTime = cnfmTime
         self.info = info
@@ -162,10 +162,10 @@ class Trade(Structure):
         self.code = code
         self.qty = qty
         self.price = price
-        self.orderType = orderType
-        self.bsType = bsType
+        self.orderType = orderType if isinstance(orderType, OrderType) else OrderType(orderType)
+        self.bsType = bsType if isinstance(bsType, BSType) else BSType(bsType)
         self.fee = fee
-        self.orderStatus = orderStatus
+        self.orderStatus = orderStatus if isinstance(orderStatus, OrderStatus) else OrderStatus(bsType)
         self.time = time
 
     def __eq__(self, other):

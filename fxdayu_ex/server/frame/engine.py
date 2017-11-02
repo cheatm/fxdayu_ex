@@ -33,8 +33,8 @@ class Consumer(Thread):
 
 class Engine(Consumer):
 
-    def __init__(self):
-        super(Engine, self).__init__(Queue(), 3)
+    def __init__(self, queue):
+        super(Engine, self).__init__(queue, 3)
         self.handlers = {}
 
     def __setitem__(self, key, value):

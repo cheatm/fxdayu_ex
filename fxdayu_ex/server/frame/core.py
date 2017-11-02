@@ -20,13 +20,12 @@ CBO = "cancel buy order"
 
 class Core(Engine):
 
-    def __init__(self, exchange, broker, orderIDs, tradeIDs):
-        super(Core, self).__init__()
+    def __init__(self, req_queue, exchange, broker, orderIDs):
+        super(Core, self).__init__(req_queue)
         self.exchange = exchange
         self.broker = broker
         self.orderpool = exchange.pool
         self.orderIDs = orderIDs
-        self.tradeIDs = tradeIDs
 
         self.order_handlers = {
             BSType.BUY.value: self.on_buy_order,
@@ -251,6 +250,7 @@ def simulation():
 def generate(accountID):
     from fxdayu_ex.utils.id_generator import TimerIDGenerator
     from fxdayu_ex.utils.cal import Rate
+    from queue import Queue
 
     tradeIDs = TimerIDGenerator.year()
     orderIDs = TimerIDGenerator.year()
@@ -261,7 +261,7 @@ def generate(accountID):
                       {"300667.XSHE": Position(accountID, "300667.XSHE", 3000, 3000)},
                       {})
     broker = Broker({accountID: account})
-    frame = Core(Exchange(pool, transactor), broker, orderIDs, tradeIDs)
+    frame = Core(Queue() ,Exchange(pool, transactor), broker, orderIDs, tradeIDs)
     return frame
 
 

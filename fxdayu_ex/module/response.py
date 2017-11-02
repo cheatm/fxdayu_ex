@@ -21,7 +21,6 @@ class RespOrder(Order, Response):
 
     DIRECT = ("accountID", "orderID", "code", "qty", "cumQty", "price", "frzAmt",
               "frzFee", "cumAmt", "cumFee", "canceled", "time", "cnfmTime", "info")
-
     ENUMS = (("orderType", OrderType), ("bsType", BSType), ("orderStatus", OrderStatus), ("reason", CanceledReason))
 
     @classmethod
@@ -35,7 +34,7 @@ class RespTrade(Trade, Response):
 
     DIRECT = ("accountID", "orderID", "tradeID", "code", "qty", "price", "fee", "time")
 
-    ENUMS = ("orderType", "bsType", "orderStatus")
+    ENUMS = (("orderType", OrderType), ("bsType", BSType), ("orderStatus", OrderStatus))
 
     @classmethod
     def from_instance(cls, instance):

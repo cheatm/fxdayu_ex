@@ -10,18 +10,26 @@ class MysqlTable:
     SELECT = "SELECT %s from %s %s"
     ALTER = "ALTER TABLE %s %s;"
     UPDATE = "UPDATE %s %s %s %s"
+    DELETE = "DELETE FROM %s %s"
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, *columns, **kwargs):
         self.name = name
-        self.args = args
+        self.args = tuple(chain(
+            columns,
+            (("_last", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),)
+        ))
         self.kwargs = kwargs
-        self.columns = dict(args)
+        self.columns = dict(columns)
 
     @property
     def create(self):
         return self.CREATE % (
             self.name,
-            ", ".join(chain(self._columns(), self.kwargs.get("index", tuple())))
+            ", ".join(chain(
+                self._columns(),
+                self.kwargs.get("index", tuple()),
+                self.kwargs.get("other", tuple())
+            ))
         )
 
     @property
@@ -29,10 +37,15 @@ class MysqlTable:
         return "DROP table %s" % self.name
 
     def insert(self, **kwargs):
+        keys = "(%s)" % ", ".join(kwargs.keys())
+        values = str(tuple(kwargs.values()))
+        if len(kwargs) == 1:
+            values = values[:-2]+')'
+
         return self.INSERT % (
             self.name,
-            "(%s)" % ", ".join(kwargs.keys()),
-            tuple(kwargs.values())
+            keys,
+            values
         )
 
     def update(self, how="SET", where=None, **kwargs):
@@ -61,6 +74,12 @@ class MysqlTable:
 
     def alter(self, query):
         return self.ALTER % (self.name, query)
+
+    def delete(self, *where):
+        return self.DELETE % (
+            self.name,
+            self.where(*where)
+        )
 
     def _columns(self):
         for item in self.args:

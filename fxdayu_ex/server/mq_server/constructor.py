@@ -1,55 +1,80 @@
 # encoding:utf-8
-from pika import TornadoConnection
-from fxdayu_ex.utils.rbmq.con import get_con, consumer_ack, consumer_no_ack
-from fxdayu_ex.utils.rbmq.objects import RabbitStructure
-from fxdayu_ex.server.mq_server.receiver import MQReceiver
-from fxdayu_ex.server.mq_server.publisher import ClientRespPublisher
-from fxdayu_ex.server.mq_server.structures import REQUEST, RESPONSE, TICK, ALL, \
-    get_req_ex, get_tick_ex, get_resp_ex, client_req_queue, all_tick_queue
-from fxdayu_ex.server.mq_server.core import ExCore
-from fxdayu_ex.utils.logger import dict_initiate
 import logging
-
+from fxdayu_ex.server.IO.mysql_engine import MysqlEngine
+from fxdayu_ex.server.IO.rabbitmq import RabbitConnection
+from fxdayu_ex.utils.id_generator import get_timer_id
+from fxdayu_ex.server.mq_server.core import ExCore
+from fxdayu_ex.server.frame.exchange import Exchange, OrderPool, Transactor
+from fxdayu_ex.server.frame.broker import Broker, Account
+from fxdayu_ex.utils.logger import dict_initiate, file_initiate
+from queue import  Queue
 
 dict_initiate()
 
 
 class Constructor(object):
 
-    def __init__(self, url):
-        logging.debug("start")
-        self.connection = get_con(url)
-        self.mqex = self.init_ex()
-        self.resp = ClientRespPublisher(self.mqex[RESPONSE])
-        self.core = ExCore.from_test(self.resp.queue)
-        self.receiver = MQReceiver(self.core.queue)
+    def __init__(self,
+                 ampq_url,
+                 mysql_url,
+                 logfile=None,
+                 logconfig=None,
+                 rule = "year",
+                 buy_rate="5/10000",
+                 sell_rate="5/10000"):
+        if logconfig:
+            file_initiate(logconfig)
+        else:
+            dict_initiate(logfile)
 
-        self.mqq = self.init_queue()
+        logging.debug("Initiating Exchange server.")
 
-        self.mq = RabbitStructure(
-            self.connection,
-            self.mqex,
-            self.mqq
-        )
+        self.resp_queue = Queue()
+        self.req_queue = Queue()
 
-    def init_queue(self):
-        return {
-            ALL: all_tick_queue(consumer_no_ack(self.receiver.on_tick)),
-            REQUEST: client_req_queue(consumer_ack(self.receiver.on_req))
-        }
+        self.mysql_engine = self.init_sql(mysql_url)
 
-    def init_ex(self):
-        return {
-            TICK: get_tick_ex(),
-            REQUEST: get_req_ex(),
-            RESPONSE: get_resp_ex()
-        }
+        exchange = self.init_exchange(rule, buy_rate, sell_rate)
+        broker = self.init_broker()
 
-    def start(self):
-        self.core.start()
-        self.resp.start()
-        self.connection.ioloop.start()
+        self.core = ExCore(self.req_queue,
+                           self.resp_queue,
+                           exchange,
+                           broker, )
+
+    def init_order_pool(self):
+
+
+    def init_broker(self):
+        try:
+            return Broker(self.mysql_engine.accounts())
+        except Exception as e:
+            logging.error("Initiate core:broker fail: %s", e)
+            self.end_with_exception()
+
+    def init_exchange(self, rule, buy_rate, sell_rate):
+        try:
+            return Exchange.quick(rule, buy_rate, sell_rate)
+        except Exception as e:
+            logging.error("Initiate core:exchange fail: %s", e)
+            self.end_with_exception()
+
+    def init_sql(self, url):
+        try:
+            return MysqlEngine(url)
+        except Exception as e:
+            logging.error("Initiate MysqlEngine fail: %s", e)
+            self.end_with_exception()
+
+
+    def end_with_exception(self):
+        import sys
+        logging.error('Service exit for unexpected exception.')
+        sys.exit(-1)
+
+
+
 
 
 if __name__ == '__main__':
-    Constructor("amqp://xinge:fxdayu@localhost:5672").start()
+    Constructor("amqp://xinge:fxdayu@localhost:5672")

@@ -3,9 +3,9 @@ from fxdayu_ex.server.frame.core import Core
 
 class ExCore(Core):
 
-    def __init__(self, exchange, broker, orderIDs, tradeIDs, response, mysql):
-        super(ExCore, self).__init__(exchange, broker, orderIDs, tradeIDs)
-        self.response = response
+    def __init__(self, req_queue, resp_queue, exchange, broker, orderIDs, mysql):
+        super(ExCore, self).__init__(req_queue, exchange, broker, orderIDs)
+        self.response = resp_queue
         self.mysql = mysql
 
     @classmethod

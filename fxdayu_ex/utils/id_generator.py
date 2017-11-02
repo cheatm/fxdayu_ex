@@ -19,6 +19,11 @@ class TimerIDGenerator(IDGenerator):
         self.origin = int(timestamp * self.multiple)
 
     @classmethod
+    def rule(cls, rule):
+        timestamp, multiple = rule.split("*")
+        return cls(int(timestamp), int(multiple))
+
+    @classmethod
     def year(cls):
         from datetime import date
 
@@ -35,3 +40,13 @@ class TimerIDGenerator(IDGenerator):
             self.last += 1
 
         return self.last
+
+
+TimeRule = {"year": TimerIDGenerator.year()}
+
+
+def get_timer_id(rule):
+    try:
+        return TimeRule[rule]
+    except KeyError:
+        return TimerIDGenerator.rule(rule)

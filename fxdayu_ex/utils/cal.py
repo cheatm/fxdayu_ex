@@ -12,3 +12,8 @@ class Rate:
 
     def __rmul__(self, other):
         return int(self.numerator * other /self.denominator)
+
+    @classmethod
+    def from_str(cls, rate):
+        n, d = rate.split('/')
+        return cls(int(n), int(d))
