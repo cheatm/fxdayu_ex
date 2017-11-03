@@ -54,6 +54,18 @@ class OrderPool(object):
     def __init__(self, **packs):
         self.packs = packs
 
+    @classmethod
+    def from_dict(cls, dct):
+        return cls(**dict(cls.iter_dict(dct)))
+
+    @staticmethod
+    def iter_dict(dct):
+        for code, orders in dct:
+            pack = OrderPack(code)
+            for order in orders:
+                pack.put(order)
+            yield code, pack
+
     def put(self, order):
         self.pack(order.code).put(order)
 

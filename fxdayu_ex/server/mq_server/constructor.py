@@ -19,7 +19,8 @@ class Constructor(object):
                  mysql_url,
                  logfile=None,
                  logconfig=None,
-                 rule = "year",
+                 orderID_rule="year",
+                 tradeID_rule="year",
                  buy_rate="5/10000",
                  sell_rate="5/10000"):
         if logconfig:
@@ -34,16 +35,30 @@ class Constructor(object):
 
         self.mysql_engine = self.init_sql(mysql_url)
 
-        exchange = self.init_exchange(rule, buy_rate, sell_rate)
-        broker = self.init_broker()
+        self.tradeIDs = self.init_IDs(tradeID_rule)
+        self.orderIDs = self.init_IDs(orderID_rule)
+        self.broker = self.init_broker()
+        self.pool = self.init_order_pool()
+        self.transactor = self.init_transactor(buy_rate, sell_rate)
+        self.exchange = self.init_exchange()
 
         self.core = ExCore(self.req_queue,
                            self.resp_queue,
-                           exchange,
-                           broker, )
+                           self.exchange,
+                           self.broker,
+                           self.orderIDs,
+                           self.mysql_engine)
+
+    def init_IDs(self, rule):
+        return get_timer_id(rule)
 
     def init_order_pool(self):
+        orders = {}
+        for account in self.broker.accounts.values():
+            for order in account.orders.values():
+                orders.setdefault(order.code, []).append(order)
 
+        return OrderPool.from_dict(orders)
 
     def init_broker(self):
         try:
@@ -52,9 +67,12 @@ class Constructor(object):
             logging.error("Initiate core:broker fail: %s", e)
             self.end_with_exception()
 
-    def init_exchange(self, rule, buy_rate, sell_rate):
+    def init_transactor(self, buy_rate, sell_rate):
+        pass
+
+    def init_exchange(self):
         try:
-            return Exchange.quick(rule, buy_rate, sell_rate)
+            return Exchange(self.pool, self.transactor)
         except Exception as e:
             logging.error("Initiate core:exchange fail: %s", e)
             self.end_with_exception()

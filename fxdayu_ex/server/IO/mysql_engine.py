@@ -106,18 +106,6 @@ class MysqlEngine(Consumer):
                        self._positions(accountID),
                        self._orders(accountID))
 
-    def today_orders(self):
-        cursor = self.connection.cursor()
-        self._select(cursor, OrderRecord, Order, "time>'%s'" % today())
-
-        orders = {}
-        for result in cursor.fetchall():
-            order = Order(*result)
-            orders[order.orderID] = order
-
-        return orders
-
-
     def _orders(self, accountID):
         cursor = self.connection.cursor()
         self._select(cursor, OrderRecord, Order,
