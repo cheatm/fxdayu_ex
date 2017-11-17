@@ -4,11 +4,11 @@ from queue import Queue, Empty
 
 class Consumer(Thread):
 
-    def __init__(self, queue, timeout):
+    def __init__(self, queue, timeout, **kwargs):
         self.queue = queue
         self.timeout = timeout
         self._running = False
-        super(Consumer, self).__init__()
+        super(Consumer, self).__init__(**kwargs)
 
     def start(self):
         if not self._running:

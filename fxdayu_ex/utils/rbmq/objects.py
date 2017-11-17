@@ -30,6 +30,7 @@ class RabbitExchange(object):
 
     def callback(self, frame):
         logging.debug("MQ Exchange declare: %s", str(frame))
+        self.declared = True
 
     def on_channel_open(self, channel):
         self.channel = channel

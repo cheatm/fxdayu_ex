@@ -123,12 +123,6 @@ class Core(Engine):
             logging.warning("AccountNotFound%s during req order: %s", e, req)
         else:
             self.order_handlers[order.bsType.value](account, order)
-            logging.warning(str(account.cash))
-        finally:
-            self.save_req_order(req)
-
-    def save_req_order(self, req):
-        pass
 
     def create_order(self, req):
         if req.orderType.value == OrderType.LIMIT.value:
@@ -169,10 +163,11 @@ class Core(Engine):
             logging.warning("CashFreezeExceed(%s) during buy order: %s %s", e, account.cash, order)
             self._cancel(order, CanceledReason.CASH)
         else:
+            self.order_success(order)
             self.buy_order_success(order, account.cash)
 
     def buy_order_success(self, order, cash):
-        self.order_success(order)
+        pass
 
     def on_sell_order(self, account, order):
         try:
@@ -184,10 +179,11 @@ class Core(Engine):
             logging.warning("PositionFreezeExceed(%s) during sell order: %s", e, order)
             self._cancel(order, CanceledReason.POSITION)
         else:
+            self.order_success(order)
             self.sell_order_success(order, account.get_position(order.code))
 
     def sell_order_success(self, order, position):
-        self.order_success(order)
+        pass
 
     def order_success(self, order):
         if order.orderStatus.value == OrderStatus.UNFILLED.value:

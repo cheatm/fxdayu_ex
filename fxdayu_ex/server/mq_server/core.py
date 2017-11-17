@@ -12,10 +12,10 @@ class ExCore(Core):
     def from_mysql(cls):
         return cls()
 
-    def trade_success(self, trade):
-        super(ExCore, self).trade_success(trade)
+    def buy_order_success(self, order, cash):
+        self.mysql.buy_order(order, cash)
+        self.response.put(order)
 
-
-    def order_success(self, order):
-        super(ExCore, self).order_success(order)
-
+    def sell_order_success(self, order, position):
+        self.mysql.sell_order(order, position)
+        self.response.put(order)

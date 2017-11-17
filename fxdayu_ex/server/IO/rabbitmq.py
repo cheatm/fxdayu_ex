@@ -28,7 +28,6 @@ class ClientRespPublisher(Consumer):
         self.rb_exchange.publish("", body, routing_key=accountID)
 
 
-
 class MQReceiver(object):
     def __init__(self, queue):
         self.queue = queue
@@ -42,6 +41,7 @@ class MQReceiver(object):
             self.queue.put(TickEvent(tick))
 
     def on_req(self, req):
+        logging.debug(req)
         try:
             req = json.loads(req)
             obj = CLASSES[req["cls"]].from_dict(req)
@@ -51,9 +51,13 @@ class MQReceiver(object):
             self.queue.put(ReqEvent(obj))
 
 
-class RabbitConnection(object):
+from threading import Thread
+
+
+class RabbitConnection(Thread):
 
     def __init__(self, url, req_queue, resp_queue):
+        super(RabbitConnection, self).__init__(name="RabbitConnection")
         self.url = url
         self.connection = get_con(url)
         self.receiver = MQReceiver(req_queue)
@@ -63,13 +67,19 @@ class RabbitConnection(object):
         self.structure = RabbitStructure(
             self.connection,
             self.exchanges,
-            self.init_queue()
+            self.queues
         )
+
+    def connect(self):
+        logging.debug("Start ClientRespPublisher.")
+        self.publisher.start()
+        logging.debug("Start Tornado ioloop.")
+        self.connection.ioloop.start()
 
     def init_queue(self):
         return {
-            ALL: all_tick_queue(consumer_no_ack(self.receiver.on_tick)),
-            REQUEST: client_req_queue(consumer_ack(self.receiver.on_req))
+            ALL: all_tick_queue(self.receiver.on_tick),
+            REQUEST: client_req_queue(self.receiver.on_req)
         }
 
     def init_ex(self):

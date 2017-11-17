@@ -9,6 +9,7 @@ CONNECTION_CLOSE = "ConnectionClose"
 def consumer_ack(handler):
     def ack_handler(channel, method, properties, body):
         channel.basic_ack(delivery_tag=method.delivery_tag)
+        print(handler)
         handler(body)
     return ack_handler
 
